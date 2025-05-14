@@ -3,6 +3,12 @@
 
 void printHeader()
 {
+    std::cout << " ,-----. ,---.   ,-----. ,------. ,------. ,---.,--.   ,--. \n"
+            << "'  .--./'   .-' '  .-.  '|  .--. '|  .---''   .- '\\  `.'  /  \n"
+            << "|  |    `.  `-. |  | |  ||  '--' ||  `--, `.  `-. '.    /   \n"
+            << "'  '--'\\.-'    |'  '-'  '|  | --' |  `---..-'    |  |  |    \n"
+            << " `-----'`-----'  `-----' `--'     `------'`-----'   `--'    \n"
+            << std::endl;
     std::cout << "\033[32mHello, welcome to CSOPESY commandline!\033[0m" << std::endl;
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m" << std::endl;
 }

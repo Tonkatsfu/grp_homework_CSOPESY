@@ -97,6 +97,7 @@ void processCommand(const std::string& command)
         {
             std:: cout << "Returning to main menu." << std::endl;
             currentScreenName = "";
+            system("cls");
             printHeader();
         }
     }

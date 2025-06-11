@@ -1,13 +1,12 @@
 #include <iostream>
 #include <string>
-#include <vector>
-#include <map>
-#include <ctime>
-#include <iomanip>
+#include <thread>
 #include "menu_processor.h"
+#include "scheduler.h"
 
 int main()
 {
+    std::thread schedulerThread(runScheduler);
     printHeader();
     std:: string command;
 
@@ -18,5 +17,6 @@ int main()
         processCommand(command);
     }
 
+    schedulerThread.join();
     return 0;
 }

@@ -26,7 +26,7 @@ void processCommand(const std::string& command)
 {
     if (command == "initialize")
     {
-        initializeScheduler();
+        std::cout << command << " command recognized. Doing something." << std::endl;
     }
     else if (command == "screen -ls")
     {
@@ -44,13 +44,84 @@ void processCommand(const std::string& command)
         else
             ScreenConsoles(activeScreens[currentScreenName]);
     }
+
+
     else if (command == "exit")
     {
-        std::cout << "Terminating command line emulator." << std::endl;
-        exit(0);
+        if (currentScreenName.empty())
+        {
+            std::cout << "Terminating command line emulator." << std::endl;
+            stopScheduler();
+            exit(0); 
+        }
+        else 
+        {
+            std::cout << "Returning to main menu." << std::endl;
+            currentScreenName = ""; 
+           
+#ifdef _WIN32
+            system("cls");
+#else
+            system("clear");
+#endif
+            printHeader();
+        }
     }
-    else
+    
+    else if (command.rfind("screen -s ", 0) == 0)
     {
-        std::cout << "Invalid command.\n";
+        std::string screenName = command.substr(10);
+        if (screenName.empty())
+        {
+            std::cout << "Usage: screen -s <name>" << std::endl;
+            return;
+        }
+
+        if (activeScreens.count(screenName))
+        {
+            std::cout << "Screen name " << screenName <<" already exists." << std::endl;
+        }
+
+        else
+        {
+            ScreenDisplay newScreen;
+            newScreen.name = screenName;
+            newScreen.processName = screenName;
+            newScreen.currentLine = 0;
+            newScreen.totalLines = 100;
+            newScreen.creationTime = time(0);
+            activeScreens[screenName] = newScreen;
+            std:: cout << "Created " << screenName << " successfully.\n";
+            currentScreenName = screenName;
+            ScreenConsoles(activeScreens[currentScreenName]);
+            addNewProcess(screenName);
+            startScheduler();
+        }
+    }
+
+    else if (command.rfind("screen -r ", 0) == 0)
+    {
+        std:: string screenName = command.substr(10);
+        if (screenName.empty())
+        {
+            std::cout << "Usage: screen -r <name>" << std::endl;
+            return;
+        }
+
+        if (activeScreens.count(screenName))
+        {
+            currentScreenName = screenName;
+            ScreenConsoles(activeScreens[currentScreenName]);
+        }
+
+        else
+        {
+            std:: cout << "Screen " << screenName << " not found. Please use screen -s " << screenName << " to create it." << std::endl;
+        }
+    }
+
+    else 
+    {
+        std::cout <<"Please enter a valid command." << std::endl;
     }
 }

@@ -5,6 +5,8 @@
 #include <map>
 #include <ctime>
 
+struct Process;
+
 struct ScreenDisplay
 {
     std::string name;

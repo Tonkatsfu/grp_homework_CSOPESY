@@ -9,6 +9,7 @@
 #include <chrono>
 #include <ctime>
 #include <iomanip>
+#include <map>
 
 struct Process
 {
@@ -27,6 +28,10 @@ std::mutex mtx;
 std::condition_variable cv;
 bool initialized = false;
 
+std::unique_ptr<std::thread> mainSchedulerThread;
+std::vector<std::thread> cpuCores;
+std::map<int, Process*> runningProcesses;
+
 void cpuWorker(int coreID)
 {
     while(true)
@@ -42,6 +47,7 @@ void cpuWorker(int coreID)
             {
                 p = readyQueue.front();
                 readyQueue.pop();
+                runningProcesses[coreID] = p;
             }
         }
 
@@ -56,22 +62,77 @@ void cpuWorker(int coreID)
             std::lock_guard<std::mutex> lock(mtx);
             p->finished = true;
             finishedProcesses.push_back(p);
+            runningProcesses.erase(coreID);
         }
     }
 }
 
-void initializeScheduler()
+void startCpuWorkers()
+{
+    const int NUM_CORES = 4;
+    for (int i = 0; i<NUM_CORES; i++)
+    {
+        cpuCores.emplace_back(cpuWorker, i);
+    }
+}
+
+void joinCpuWorkers()
+{
+    for (std::thread& t : cpuCores) 
+    {
+        if (t.joinable()) 
+        {
+            t.join();
+        }
+    }
+    cpuCores.clear();
+}
+
+void runScheduler()
+{
+    startCpuWorkers();
+    {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock, []{ return !initialized; });
+    }
+
+    joinCpuWorkers();
+}
+
+void startScheduler()
 {
     std::lock_guard<std::mutex> lock(mtx);
-    for (int i = 1; i <= 10; ++i)
+    if (!initialized)
     {
-        readyQueue.push(new Process(
-            std::string("process") + (i < 10 ? "0" : "") + std::to_string(i) 
-        ));
+        initialized = true;
+        mainSchedulerThread = std::make_unique<std::thread>(runScheduler);
     }
-    initialized = true;
-    cv.notify_all();
 }
+
+void stopScheduler()
+{
+    std::unique_lock<std::mutex> lock(mtx);
+    if (initialized)
+    {
+        initialized = false;
+        cv.notify_all();;
+        lock.unlock();
+
+        if (mainSchedulerThread && mainSchedulerThread->joinable()) 
+        {
+            mainSchedulerThread->join(); 
+            mainSchedulerThread.reset();
+        }
+    }
+}
+
+void addNewProcess(const std::string& processName)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    readyQueue.push(new Process(processName));
+    cv.notify_all(); 
+}
+
 
 void printSchedulerStatus()
 {
@@ -79,11 +140,16 @@ void printSchedulerStatus()
     std::cout << "\n\033[36mRunning processes:\033[0m\n";
     int core = 0;
     std::queue<Process*> tmp = readyQueue;
-    while (!tmp.empty())
+    if (!runningProcesses.empty())
     {
-        auto p = tmp.front(); tmp.pop();
-        std::cout << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                  << ")\tCore: " << core++ % 4 << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
+        for (const auto& pair : runningProcesses)
+        {
+            auto p = pair.second;
+            std::cout << "  " << p->name
+                      << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+                      << ")\tCore: " << pair.first 
+                      << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
+        }
     }
 
     std::cout << "\n\033[32mFinished processes:\033[0m\n";
@@ -94,48 +160,5 @@ void printSchedulerStatus()
     }
 }
 
-void runScheduler()
-{
-    const int NUM_CORES = 4;
-    std::vector<std::thread> cpuCores;
 
-    for (int i = 0; i < NUM_CORES; ++i)
-    {
-        cpuCores.emplace_back(cpuWorker, i);
-    }
 
-    std::thread schedulerThread([]() {
-        initializeScheduler(); 
-    });
-
-    while (true)
-    {
-        {
-            std::lock_guard<std::mutex> lock(mtx);
-            if (readyQueue.empty() && finishedProcesses.size() == 10)
-            {
-                initialized = false; 
-                cv.notify_all();
-                break;
-            }
-        }
-#ifdef _WIN32
-        system("cls");
-#else
-        system("clear");
-#endif
-        printSchedulerStatus();
-        std::this_thread::sleep_for(std::chrono::seconds(1));
-    }
-
-    if (schedulerThread.joinable()) schedulerThread.join();
-    for (auto& t : cpuCores)
-        if (t.joinable()) t.join();
-    printSchedulerStatus();
-}
-
-int main()
-{
-    runScheduler();
-    return 0;
-}

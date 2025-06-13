@@ -1,4 +1,5 @@
 #include "screen_processor.h"
+#include "scheduler.h"
 
 std::map<std::string, ScreenDisplay> activeScreens;
 std::string currentScreenName = "";

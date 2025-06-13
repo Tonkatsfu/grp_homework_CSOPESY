@@ -6,7 +6,6 @@
 
 int main()
 {
-    std::thread schedulerThread(runScheduler);
     printHeader();
     std:: string command;
 
@@ -17,6 +16,6 @@ int main()
         processCommand(command);
     }
 
-    schedulerThread.join();
+    stopScheduler();
     return 0;
 }

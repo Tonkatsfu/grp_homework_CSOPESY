@@ -94,4 +94,39 @@ void printSchedulerStatus()
     }
 }
 
-/*implement runScheduler*/
+void runScheduler()
+{
+    const int NUM_CORES = 4;
+    std::vector<std::thread> cpuCores;
+
+    for (int i = 0; i < NUM_CORES; ++i)
+    {
+        cpuCores.emplace_back(cpuWorker, i);
+    }
+
+    std::thread schedulerThread([]() {
+        initializeScheduler(); 
+    });
+
+    while (true)
+    {
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (readyQueue.empty() && finishedProcesses.size() == 10)
+            {
+                initialized = false; 
+                cv.notify_all();
+                break;
+            }
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    if (schedulerThread.joinable()) schedulerThread.join();
+    for (auto& t : cpuCores)
+        if (t.joinable()) t.join();
+
+    std::cout << "--------------------------------------------\n";
+    printSchedulerStatus();
+    std::cout << "--------------------------------------------\n";
+}

@@ -119,14 +119,23 @@ void runScheduler()
                 break;
             }
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+#ifdef _WIN32
+        system("cls");
+#else
+        system("clear");
+#endif
+        printSchedulerStatus();
+        std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 
     if (schedulerThread.joinable()) schedulerThread.join();
     for (auto& t : cpuCores)
         if (t.joinable()) t.join();
-
-    std::cout << "--------------------------------------------\n";
     printSchedulerStatus();
-    std::cout << "--------------------------------------------\n";
+}
+
+int main()
+{
+    runScheduler();
+    return 0;
 }

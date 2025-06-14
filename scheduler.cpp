@@ -35,6 +35,7 @@ struct Process
             char buffer[80];
             strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
             logFile << "[" << buffer << "] Core " << coreID << ": print command executed\n";
+            logFile.flush();
         }
     }
 };

@@ -32,6 +32,7 @@ int main()
 int main()
 {
     printHeader();
+    processCommand("clear");
     startScheduler();
 
     for (int i = 1; i <= 10; ++i)

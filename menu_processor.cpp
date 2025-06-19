@@ -120,6 +120,16 @@ void processCommand(const std::string& command)
         }
     }
 
+    else if (command == "scheduler -start")
+    {
+        startDummyProcesses();
+    }
+
+    else if (command == "scheduler -stop")
+    {
+        stopDummyProcesses();
+    }
+
     else 
     {
         std::cout <<"Please enter a valid command." << std::endl;

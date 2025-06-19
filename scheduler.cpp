@@ -10,6 +10,7 @@
 #include <ctime>
 #include <iomanip>
 #include <map>
+#include <atomic>
 
 struct Process
 {
@@ -45,10 +46,13 @@ std::vector<Process*> finishedProcesses;
 std::mutex mtx;
 std::condition_variable cv;
 bool initialized = false;
+std::atomic <bool> generateProcess = false;
 
+std::unique_ptr<std::thread> dummyProcessThread;
 std::unique_ptr<std::thread> mainSchedulerThread;
 std::vector<std::thread> cpuCores;
 std::map<int, Process*> runningProcesses;
+int processGenerationIntervalTicks = 5000;
 
 void cpuWorker(int coreID)
 {
@@ -209,6 +213,39 @@ void printSchedulerStatus()
         {
             std::cout << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
                       << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
+        }
+    }
+}
+
+void dummyProcessGenerator()
+{
+    int counter = 0;
+    while (generateProcess)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(processGenerationIntervalTicks));
+        addNewProcess("Dummy Process" + std::to_string(counter));
+        counter++;
+    }
+}
+
+void startDummyProcesses()
+{
+    if (!generateProcess.load())
+    {
+        generateProcess.store(true);
+        dummyProcessThread = std::make_unique<std::thread>(dummyProcessGenerator);
+    }
+}
+
+void stopDummyProcesses()
+{
+    if (generateProcess.load())
+    {
+        generateProcess.store(false);
+        if (dummyProcessThread && dummyProcessThread->joinable())
+        {
+            dummyProcessThread->join();
+            dummyProcessThread.reset();
         }
     }
 }

@@ -52,7 +52,9 @@ std::unique_ptr<std::thread> dummyProcessThread;
 std::unique_ptr<std::thread> mainSchedulerThread;
 std::vector<std::thread> cpuCores;
 std::map<int, Process*> runningProcesses;
-int processGenerationIntervalTicks = 5000;
+int processGenerationIntervalTicks = 2000;
+
+const int NUM_CORES = 4;
 
 void cpuWorker(int coreID)
 {
@@ -92,7 +94,7 @@ void cpuWorker(int coreID)
 
 void startCpuWorkers()
 {
-    const int NUM_CORES = 4;
+    
     for (int i = 0; i<NUM_CORES; i++)
     {
         cpuCores.emplace_back(cpuWorker, i);
@@ -165,6 +167,14 @@ void printSchedulerStatus()
 #else
     system("clear");
 #endif
+    int runningCores = runningProcesses.size();
+    int availCores = NUM_CORES - runningCores;
+
+    double cpuPercentage = (static_cast<double>(runningCores) / NUM_CORES) * 100;
+
+    std:: cout << "CPU Utilization: " << cpuPercentage << "%\n" ;
+    std:: cout << "Cores used: " << runningCores << " \n";
+    std:: cout << "Cores available: " << availCores << " \n";
 
     std::lock_guard<std::mutex> lock(mtx);
     std::cout << "\n\033[36mRunning processes:\033[0m\n";

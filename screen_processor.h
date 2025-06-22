@@ -1,13 +1,12 @@
-/*
-    This header file is for functions and declarations relating to the main screen function.
-*/
+#ifndef SCREEN_PROCESSOR_H
+#define SCREEN_PROCESSOR_H
 
 #include <iostream>
 #include <map>
+#include <ctime>
 
-/*
-    Struct data for the screen process.
-*/
+struct Process;
+
 struct ScreenDisplay
 {
     std::string name;
@@ -17,30 +16,10 @@ struct ScreenDisplay
     time_t creationTime;
 };
 
-std::map<std::string, ScreenDisplay> activeScreens;
-std::string currentScreenName = "";
+//extern std::map<std::string, Process*> activeScreens;
+extern std::string currentScreenName;
 
+void ScreenConsoles(const Process& process);
+void ProcessSMI(const std::string& processName);
 
-/*
-    Function to display the requested screen data
-    @params
-        - screen : a ScreenDisplay struct to be displayed
-*/
-void ScreenConsoles(const ScreenDisplay& screen)
-{
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
 #endif
-    std::cout << "\n\033[36m--- Screen: " << screen.name << " ---\033[0m" << std::endl;
-    std::cout << "Process Name: " << screen.processName << std::endl;
-    std::cout << "Current Line: " << screen.currentLine << " / " << screen.totalLines << std::endl;
-
-    char buffer[80];
-    strftime(buffer, sizeof(buffer), "%m/%d/%Y, %I:%M:%S %p", localtime(&screen.creationTime));
-    std::cout << "Creation Time: " << buffer << std::endl;
-
-    std::cout << "\033[36m------------------------\033[0m" << std::endl;
-    std::cout << "Type 'exit' to return to the main menu." << std::endl;
-}

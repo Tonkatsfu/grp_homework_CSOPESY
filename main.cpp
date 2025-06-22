@@ -32,13 +32,20 @@ int main()
 int main()
 {
     printHeader();
-    processCommand("clear");
+    #ifdef _WIN32
+        system("cls");
+#else
+        system("clear");
+#endif
+    printHeader();
     startScheduler();
 
+    /*
     for (int i = 1; i <= 10; ++i)
     {
         addNewProcess("Process_" + std::to_string(i));
     }
+        */
 
     std::string command;
 
@@ -49,10 +56,13 @@ int main()
 
         processCommand(command);
 
-        if (command == "exit")
+        
+        if (terminateProgram == true)
         {
             break;
         }
+            
+
 
     }
 

@@ -8,4 +8,6 @@
 void printHeader();
 void processCommand(const std::string& command);
 
+extern bool terminateProgram;
+
 #endif

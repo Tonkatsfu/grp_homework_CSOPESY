@@ -16,9 +16,10 @@ struct ScreenDisplay
     time_t creationTime;
 };
 
-extern std::map<std::string, ScreenDisplay> activeScreens;
+//extern std::map<std::string, Process*> activeScreens;
 extern std::string currentScreenName;
 
-void ScreenConsoles(const ScreenDisplay& screen);
+void ScreenConsoles(const Process& process);
+void ProcessSMI(const std::string& processName);
 
 #endif

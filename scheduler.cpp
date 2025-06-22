@@ -12,46 +12,19 @@
 #include <map>
 #include <atomic>
 
-struct Process
-{
-    std:: string name;
-    int totalInstructions = 100;
-    int currentInstruction = 0;
-    std:: time_t startTime;
-    bool finished = false;
-    std::ofstream logFile;  // <-- Log for "print" commands
-
-    Process(const std::string& n) : name(n), startTime(std::time(nullptr)) {
-        logFile.open(name + "_log.txt", std::ios::out);
-    }
-
-    ~Process() {
-        if (logFile.is_open())
-            logFile.close();
-    }
-
-    void logPrintCommand(int coreID) {
-        if (logFile.is_open()) {
-            auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-            char buffer[80];
-            strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
-            logFile << "[" << buffer << "] Core " << coreID << ": print command executed\n";
-            logFile.flush();
-        }
-    }
-};
-
 std::queue<Process*> readyQueue;
 std::vector<Process*> finishedProcesses;
 std::mutex mtx;
 std::condition_variable cv;
 bool initialized = false;
 std::atomic <bool> generateProcess = false;
+std::atomic<int> pidCounter = 0;
 
 std::unique_ptr<std::thread> dummyProcessThread;
 std::unique_ptr<std::thread> mainSchedulerThread;
 std::vector<std::thread> cpuCores;
-std::map<int, Process*> runningProcesses;
+std::map<std::string, Process*> allProcesses;
+std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
 
 void cpuWorker(int coreID)
@@ -69,7 +42,7 @@ void cpuWorker(int coreID)
             {
                 p = readyQueue.front();
                 readyQueue.pop();
-                runningProcesses[coreID] = p;
+                runningProcesses[p->name] = p;
             }
         }
 
@@ -85,7 +58,7 @@ void cpuWorker(int coreID)
             std::lock_guard<std::mutex> lock(mtx);
             p->finished = true;
             finishedProcesses.push_back(p);
-            runningProcesses.erase(coreID);
+            runningProcesses.erase(p->name);
         }
     }
 }
@@ -152,7 +125,10 @@ void stopScheduler()
 void addNewProcess(const std::string& processName)
 {
     std::lock_guard<std::mutex> lock(mtx);
-    readyQueue.push(new Process(processName));
+    Process* p = new Process(processName);
+    p->pid = pidCounter++;
+    readyQueue.push(p);
+    allProcesses[p->name] = p;
     cv.notify_all(); 
 }
 
@@ -223,7 +199,7 @@ void dummyProcessGenerator()
     while (generateProcess)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(processGenerationIntervalTicks));
-        addNewProcess("Dummy Process" + std::to_string(counter));
+        addNewProcess("p" + std::to_string(counter));
         counter++;
     }
 }

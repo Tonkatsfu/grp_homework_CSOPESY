@@ -76,7 +76,8 @@
     "span": "cpp",
     "stop_token": "cpp",
     "text_encoding": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "codecvt": "cpp"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",

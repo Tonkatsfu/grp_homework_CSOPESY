@@ -30,6 +30,7 @@ struct Process
     int pid = 0;
     int totalInstructions = 100;
     int currentInstruction = 0;
+    int assignedCoreID = -1;
     std:: time_t startTime;
     bool finished = false;
     std::vector<std::string> logs;

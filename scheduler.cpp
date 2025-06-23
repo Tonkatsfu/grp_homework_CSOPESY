@@ -26,6 +26,7 @@ std::vector<std::thread> cpuCores;
 std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
+const int NUM_CORES = 4;
 
 void cpuWorker(int coreID)
 {
@@ -42,6 +43,7 @@ void cpuWorker(int coreID)
             {
                 p = readyQueue.front();
                 readyQueue.pop();
+                p->assignedCoreID = coreID;
                 runningProcesses[p->name] = p;
             }
         }
@@ -65,7 +67,6 @@ void cpuWorker(int coreID)
 
 void startCpuWorkers()
 {
-    const int NUM_CORES = 4;
     for (int i = 0; i<NUM_CORES; i++)
     {
         cpuCores.emplace_back(cpuWorker, i);
@@ -142,6 +143,15 @@ void printSchedulerStatus()
     system("clear");
 #endif
 
+    int runningCores = runningProcesses.size();
+    int availCores = NUM_CORES - runningCores;
+
+    double cpuPercentage = (static_cast<double>(runningCores) / NUM_CORES) * 100;
+
+    std:: cout << "CPU Utilization: " << cpuPercentage << "%\n" ;
+    std:: cout << "Cores used: " << runningCores << " \n";
+    std:: cout << "Cores available: " << availCores << " \n";
+
     std::lock_guard<std::mutex> lock(mtx);
     std::cout << "\n\033[36mRunning processes:\033[0m\n";
     if (!runningProcesses.empty())
@@ -151,7 +161,7 @@ void printSchedulerStatus()
             auto p = pair.second;
             std::cout << "  " << p->name
                       << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                      << ")\tCore: " << pair.first 
+                      << ")\tCore: " << p->assignedCoreID 
                       << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
         }
     }

@@ -26,45 +26,46 @@ int main()
 #include <string>
 #include <thread>
 #include <chrono>
-
 #include "menu_processor.h"
 #include "scheduler.h"
-#include "cpu_tick.h"
-#include "cpu_tick_global.h"
-
-CpuTicker ticker;
 
 int main()
 {
-    globalCpuTicker = &ticker;
-
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-
     printHeader();
-
-    ticker.start();
+    #ifdef _WIN32
+        system("cls");
+#else
+        system("clear");
+#endif
+    printHeader();
     startScheduler();
+
+    /*
+    for (int i = 1; i <= 10; ++i)
+    {
+        addNewProcess("Process_" + std::to_string(i));
+    }
+        */
 
     std::string command;
 
-    while (!terminateProgram)
+    while (true)
     {
-        if (currentScreenName.empty())
-        {
-            std::cout << "Enter a command: ";
-        }
-
+        std::cout << "Enter a command: ";
         std::getline(std::cin, command);
 
         processCommand(command);
+
+        
+        if (terminateProgram == true)
+        {
+            break;
+        }
+            
+
+
     }
 
-    ticker.stop();
     stopScheduler();
     return 0;
 }
-

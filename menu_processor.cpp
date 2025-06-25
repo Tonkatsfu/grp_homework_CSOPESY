@@ -31,133 +31,133 @@ void printHeader()
 
 void processCommand(const std::string& command)
 {
-    if(isInitialized){
-    if (command == "screen -ls")
+    if (isInitialized)
     {
-        printSchedulerStatus();
-    }
-    else if (command == "clear")
-    {
-#ifdef _WIN32
-        system("cls");
-#else
-        system("clear");
-#endif
-        if (currentScreenName.empty())
+        if (command == "screen -ls")
+        {
+            printSchedulerStatus();
             printHeader();
-        else
-            ScreenConsoles(*allProcesses[currentScreenName]);
-    }
-
-
-    else if (command == "exit")
-    {
-        if (currentScreenName.empty())
-        {
-            std::cout << "Terminating command line emulator." << std::endl;
-            stopDummyProcesses();
-            stopScheduler();
-            //exit(0); 
-            terminateProgram = true;
         }
-        else 
+        else if (command == "clear")
         {
-            std::cout << "Returning to main menu." << std::endl;
-            currentScreenName = ""; 
-           
 #ifdef _WIN32
             system("cls");
 #else
             system("clear");
 #endif
-            printHeader();
+            if (currentScreenName.empty())
+                printHeader();
+            else
+                ScreenConsoles(*allProcesses[currentScreenName]);
         }
-    }
-    
-    else if (command.rfind("screen -s ", 0) == 0)
-    {
-        std::string screenName = command.substr(10);
-        if (screenName.empty())
+        else if (command == "exit")
         {
-            std::cout << "Usage: screen -s <name>" << std::endl;
-            return;
-        }
-
-        /*
-        if (activeScreens.count(screenName))
-        {
-            std::cout << "Screen name " << screenName <<" already exists." << std::endl;
-        }
-            */
-
-        else
-        {
-            if(allProcesses[screenName] != NULL && allProcesses[screenName]->finished == false){
-                std:: cout << "Screen " << screenName << " already exists you may want to use screen -r <process name>.\n";
-            }else{
-                currentScreenName = screenName;
-                addNewProcess(screenName);
-                //startScheduler();
-                ScreenConsoles(*allProcesses[screenName]);
+            if (currentScreenName.empty())
+            {
+                std::cout << "Terminating command line emulator." << std::endl;
+                stopDummyProcesses();
+                stopScheduler();
+                terminateProgram = true;
+            }
+            else
+            {
+                std::cout << "Returning to main menu." << std::endl;
+                currentScreenName = "";
+#ifdef _WIN32
+                system("cls");
+#else
+                system("clear");
+#endif
+                printHeader();
             }
         }
+        else if (command.rfind("screen -s ", 0) == 0)
+        {
+    std::string screenName = command.substr(10);
+    if (screenName.empty())
+    {
+        std::cout << "Usage: screen -s <name>" << std::endl;
+        return;
     }
 
-    else if (command.rfind("screen -r ", 0) == 0)
+    if (allProcesses[screenName] != nullptr && !allProcesses[screenName]->finished)
     {
-        std:: string screenName = command.substr(10);
-        if (screenName.empty())
-        {
-            std::cout << "Usage: screen -r <name>" << std::endl;
-            return;
-        }
+        std::cout << "Screen " << screenName << " already exists. Use screen -r <process name>.\n";
+    }
+    else
+    {
+        currentScreenName = screenName;
+        addNewProcess(screenName);
+        startScheduler();
+        ScreenConsoles(*allProcesses[screenName]);  
+    }
+}
 
-        if (allProcesses.count(screenName) && allProcesses[screenName]->finished == false)
+        else if (command.rfind("screen -r ", 0) == 0)
         {
-            currentScreenName = screenName;
-            ScreenConsoles(*allProcesses[screenName]);
-        }
+            std::string screenName = command.substr(10);
+            if (screenName.empty())
+            {
+                std::cout << "Usage: screen -r <name>" << std::endl;
+                return;
+            }
 
+            if (allProcesses.count(screenName) && !allProcesses[screenName]->finished)
+            {
+                currentScreenName = screenName;
+                ScreenConsoles(*allProcesses[screenName]);
+
+                std::string screenCommand;
+                std::getline(std::cin, screenCommand);
+                processCommand(screenCommand); // allow commands inside the screen
+            }
+            else
+            {
+                std::cout << "Process " << screenName << " not found. Use screen -s to create it.\n";
+            }
+        }
+        else if (command == "scheduler -start")
+        {
+            startDummyProcesses();
+            startScheduler();
+        }
+        else if (command == "scheduler -stop")
+        {
+            stopDummyProcesses();
+            stopScheduler();
+        }
+        else if (command == "process-smi")
+        {
+            if (!currentScreenName.empty())
+            {
+                ProcessSMI(currentScreenName);
+            }
+            else
+            {
+                std::cout << "You are currently not in a process screen. Use screen -s or screen -r first.\n";
+            }
+        }
         else
         {
-            std:: cout << "Process " << screenName << " not found. Please use screen -s " << screenName << " to create it." << std::endl;
+            std::cout << "Please enter a valid command." << std::endl;
         }
     }
-
-    else if (command == "scheduler -start")
+    else
     {
-        startDummyProcesses();
-    }
-
-    else if (command == "scheduler -stop")
-    {
-        stopDummyProcesses();
-    }
-
-    else if(command == "process-smi"){
-        if (currentScreenName != "") //if the current screen is not the main menu, thus a process screen. CHANGE THIS IF THERE WILL BE OTHER SCREENS THAN A PROCESS SCREEN!
+        if (command == "initialize")
         {
-            ProcessSMI(currentScreenName);
-        }else{
-            std:: cout << "You are currently not in a process screen, use screen -s <process name> to create one or screen -r <process name> to resume a process screen" << std::endl;
-        }
-    }
-
-    else 
-    {
-        std::cout <<"Please enter a valid command." << std::endl;
-    }
-    }else{
-        if (command == "initialize"){
             initialize();
             isInitialized = true;
-        }else if (command == "exit"){
+        }
+        else if (command == "exit")
+        {
             terminateProgram = true;
         }
-        else{
-            std::cout <<"To input other commands please initialize the program by typing initialize." << std::endl;
+        else
+        {
+            std::cout << "To input other commands, please initialize the program by typing 'initialize'.\n";
         }
     }
-    
 }
+
 

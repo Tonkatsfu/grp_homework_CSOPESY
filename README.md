@@ -1,4 +1,4 @@
-### 🛠️ Compilation and Execution Steps
+### Compilation and Execution Steps
 
 1. **Open Command Prompt (CMD)**  
    Navigate to your project folder:

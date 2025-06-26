@@ -1,5 +1,6 @@
 #include "scheduler.h"
 #include "initialize.h"
+#include "menu_processor.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -29,7 +30,6 @@ std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
 
-const int NUM_CORES = 4;
 
 void cpuWorker(int coreID)
 {
@@ -90,7 +90,7 @@ void cpuWorker(int coreID)
 
 void startCpuWorkers()
 {
-    for (int i = 0; i<NUM_CORES; i++)
+    for (int i = 0; i<numCPU; i++)
     {
         cpuCores.emplace_back(cpuWorker, i);
     }
@@ -163,7 +163,7 @@ void addNewProcess(const std::string& processName)
 }
 
 
-void printSchedulerStatus()
+void printSchedulerStatus(std::ostream& os)
 {
     // Clear the screen before printing status
 #ifdef _WIN32
@@ -173,22 +173,22 @@ void printSchedulerStatus()
 #endif
 
     int runningCores = runningProcesses.size();
-    int availCores = NUM_CORES - runningCores;
+    int availCores = numCPU - runningCores;
 
-    double cpuPercentage = (static_cast<double>(runningCores) / NUM_CORES) * 100;
+    double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
 
-    std:: cout << "CPU Utilization: " << cpuPercentage << "%\n" ;
-    std:: cout << "Cores used: " << runningCores << " \n";
-    std:: cout << "Cores available: " << availCores << " \n";
+    os << "CPU Utilization: " << cpuPercentage << "%\n" ;
+    os << "Cores used: " << runningCores << " \n";
+    os << "Cores available: " << availCores << " \n";
 
     std::lock_guard<std::mutex> lock(mtx);
-    std::cout << "\n\033[36mRunning processes:\033[0m\n";
+    os << "\nRunning processes:\n";
     if (!runningProcesses.empty())
     {
         for (const auto& pair : runningProcesses)
         {
             auto p = pair.second;
-            std::cout << "  " << p->name
+            os << "  " << p->name
                       << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
                       << ")\tCore: " << p->assignedCoreID 
                       << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
@@ -196,14 +196,14 @@ void printSchedulerStatus()
     }
     else
     {
-        std::cout << "  None\n";
+        os << "  None\n";
     }
 
-    std::cout << "\n\033[33mQueued processes:\033[0m\n";
+    os << "\nQueued processes:\n";
     std::queue<Process*> tmpQueue = readyQueue;
     if (tmpQueue.empty())
     {
-        std::cout << "  None\n";
+        os << "  None\n";
     }
     else
     {
@@ -211,22 +211,22 @@ void printSchedulerStatus()
         {
             Process* p = tmpQueue.front();
             tmpQueue.pop();
-            std::cout << "  " << p->name
+            os << "  " << p->name
                       << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
                       << ")\tWaiting\n";
         }
     }
 
-    std::cout << "\n\033[32mFinished processes:\033[0m\n";
+    os << "\nFinished processes:\n";
     if (finishedProcesses.empty())
     {
-        std::cout << "  None\n";
+        os << "  None\n";
     }
     else
     {
         for (auto p : finishedProcesses)
         {
-            std::cout << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+            os << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
                       << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }

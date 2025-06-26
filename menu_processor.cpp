@@ -13,7 +13,14 @@ void printHeader()
               << "|  |    `.  `-. |  | |  ||  '--' ||  `--, `.  `-. '.    /   \n"
               << "'  '--'\\.-'    |'  '-'  '|  | --' |  `---..-'    |  |  |    \n"
               << " `-----'`-----'  `-----' `--'     `------'`-----'   `--'    \033[0m\n\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[32mHello, welcome to CSOPESY commandline!\033[0m\n";
+    std::cout << "Developers:\n";
+    std::cout << "Matthew Chua\n";
+    std::cout << "Ian Gabriel De Jesus\n";
+    std::cout << "Joemar Lapasaran\n";
+    std::cout << "Neo Monserratt\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m\n";
 
     /*
@@ -34,7 +41,7 @@ void processCommand(const std::string& command)
     if(isInitialized){
     if (command == "screen -ls")
     {
-        printSchedulerStatus();
+        printSchedulerStatus(std::cout);
     }
     else if (command == "clear")
     {
@@ -142,12 +149,32 @@ void processCommand(const std::string& command)
             std:: cout << "You are currently not in a process screen, use screen -s <process name> to create one or screen -r <process name> to resume a process screen" << std::endl;
         }
     }
+    else if (command == "report -util")
+    {
+        std::ofstream logFile("csopesy-log.txt", std::ios::app);
+        if (logFile.is_open())
+        {
+            auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            char buffer[80];
+            strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S%p", std::localtime(&now));
 
+            printSchedulerStatus(logFile);
+            logFile.close();
+            printSchedulerStatus(std::cout);
+        }
+
+        else
+        {
+            std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
+        }
+    }
     else 
     {
         std::cout <<"Please enter a valid command." << std::endl;
     }
-    }else{
+    }
+    else
+    {
         if (command == "initialize"){
             initialize();
             isInitialized = true;

@@ -80,7 +80,7 @@ extern std::mutex mtx;
 void startScheduler();
 void stopScheduler();
 void addNewProcess(const std::string& processName);
-void printSchedulerStatus();
+void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();
 void stopDummyProcesses();

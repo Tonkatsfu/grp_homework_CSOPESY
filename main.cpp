@@ -43,9 +43,7 @@ int main()
 #else
     system("clear");
 #endif
-
     printHeader();
-
     ticker.start();
     startScheduler();
 

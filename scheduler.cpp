@@ -40,7 +40,9 @@ void cpuWorker(int coreID)
             std::unique_lock<std::mutex> lock(mtx);
             cv.wait(lock, [] { return !readyQueue.empty() || !initialized; });
 
-            if (!initialized && readyQueue.empty()) return;
+            if (!initialized && readyQueue.empty()) {
+                return;
+            }
 
             if (!readyQueue.empty())
             {

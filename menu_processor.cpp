@@ -176,7 +176,7 @@ void processCommand(const std::string& command)
     else
     {
         if (command == "initialize"){
-            initialize();
+            //initialize();
             isInitialized = true;
         }else if (command == "exit"){
             terminateProgram = true;

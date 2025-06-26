@@ -75,6 +75,7 @@ extern std::map<std::string, Process*> allProcesses;
 extern std::atomic <bool> generateProcess;
 extern int processGenerationIntervalTicks;
 extern std::mutex mtx;
+extern bool initialized;
 
 
 void startScheduler();

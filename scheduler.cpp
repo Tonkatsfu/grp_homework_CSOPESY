@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "initialize.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -11,6 +12,7 @@
 #include <iomanip>
 #include <map>
 #include <atomic>
+#include <random>
 
 std::queue<Process*> readyQueue;
 std::vector<Process*> finishedProcesses;
@@ -26,6 +28,7 @@ std::vector<std::thread> cpuCores;
 std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
+
 const int NUM_CORES = 4;
 
 void cpuWorker(int coreID)
@@ -50,17 +53,37 @@ void cpuWorker(int coreID)
 
         if (p)
         {
-            while (p->currentInstruction < p->totalInstructions)
-            {
-                std::this_thread::sleep_for(std::chrono::milliseconds(50)); 
-                p->logPrintCommand(coreID);  
-                p->currentInstruction++;
-            }
+            if (scheduler == "rr") {
+                int slice = 0;
+                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    p->logPrintCommand(coreID);
+                    p->currentInstruction++;
+                    slice++;
+                }
 
-            std::lock_guard<std::mutex> lock(mtx);
-            p->finished = true;
-            finishedProcesses.push_back(p);
-            runningProcesses.erase(p->name);
+                std::lock_guard<std::mutex> lock(mtx);
+                if (p->currentInstruction >= p->totalInstructions) {
+                    p->finished = true;
+                    finishedProcesses.push_back(p);
+                    runningProcesses.erase(p->name);
+                } else {
+                    readyQueue.push(p); 
+                    runningProcesses.erase(p->name);
+                }
+            } else {
+                // FCFS
+                while (p->currentInstruction < p->totalInstructions) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    p->logPrintCommand(coreID);
+                    p->currentInstruction++;
+                }
+
+                std::lock_guard<std::mutex> lock(mtx);
+                p->finished = true;
+                finishedProcesses.push_back(p);
+                runningProcesses.erase(p->name);
+            }
         }
     }
 }
@@ -128,6 +151,12 @@ void addNewProcess(const std::string& processName)
     std::lock_guard<std::mutex> lock(mtx);
     Process* p = new Process(processName);
     p->pid = pidCounter++;
+
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dist(minIns, maxIns);
+    p->totalInstructions = dist(gen);
+
     readyQueue.push(p);
     allProcesses[p->name] = p;
     cv.notify_all(); 
@@ -205,12 +234,17 @@ void printSchedulerStatus()
 
 void dummyProcessGenerator()
 {
+    int ticks = 0;
     int counter = 0;
     while (generateProcess)
     {
-        std::this_thread::sleep_for(std::chrono::milliseconds(processGenerationIntervalTicks));
-        addNewProcess("p" + std::to_string(counter));
-        counter++;
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+        ticks++;
+        if (ticks >= batchProcessFreq)
+        {
+            addNewProcess("p" + std::to_string(counter++));
+            ticks = 0;
+        }
     }
 }
 

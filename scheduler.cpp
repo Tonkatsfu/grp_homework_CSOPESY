@@ -59,6 +59,10 @@ void cpuWorker(int coreID)
                 int slice = 0;
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    if (delayPerExec == 0)
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
+                    }
                     p->logPrintCommand(coreID);
                     p->currentInstruction++;
                     slice++;
@@ -77,6 +81,10 @@ void cpuWorker(int coreID)
                 // FCFS
                 while (p->currentInstruction < p->totalInstructions) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    if (delayPerExec == 0)
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
+                    }
                     p->logPrintCommand(coreID);
                     p->currentInstruction++;
                 }
@@ -241,6 +249,10 @@ void dummyProcessGenerator()
     while (generateProcess)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+        if (delayPerExec == 0)
+        {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
         ticks++;
         if (ticks >= batchProcessFreq)
         {

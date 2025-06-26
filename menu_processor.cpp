@@ -113,21 +113,17 @@ void processCommand(const std::string& command)
     else if (command.rfind("screen -r ", 0) == 0)
     {
         std:: string screenName = command.substr(10);
-        if (screenName.empty())
-        {
-            std::cout << "Usage: screen -r <name>" << std::endl;
-            return;
-        }
-
-        if (allProcesses.count(screenName) && allProcesses[screenName]->finished == false)
+        std:: lock_guard<std::mutex> lock(mtx); 
+        auto it = allProcesses.find(screenName);
+        if (it != allProcesses.end())
         {
             currentScreenName = screenName;
-            ScreenConsoles(*allProcesses[screenName]);
+            ScreenConsoles(*it->second);
         }
 
         else
         {
-            std:: cout << "Process " << screenName << " not found. Please use screen -s " << screenName << " to create it." << std::endl;
+            std::cout << "No screen found with name: " << screenName << std::endl;
         }
     }
 

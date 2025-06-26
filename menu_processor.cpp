@@ -19,7 +19,7 @@ void printHeader()
     std::cout << "Matthew Chua\n";
     std::cout << "Ian Gabriel De Jesus\n";
     std::cout << "Joemar Lapasaran\n";
-    std::cout << "Neo Monserratt\n";
+    std::cout << "Neo Monserrat\n";
     std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m\n";
 

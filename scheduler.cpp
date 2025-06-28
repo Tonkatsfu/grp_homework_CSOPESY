@@ -60,6 +60,13 @@ void cpuWorker(int coreID)
                 bool wasRequeued = false;
 
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
+                    if (!initialized) 
+                    {  
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p); 
+                        runningProcesses.erase(p->name);
+                        return; 
+                    }
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -254,84 +261,33 @@ void addNewProcess(const std::string& processName)
     Process* p = new Process(processName);
     p->pid = pidCounter++;
 
-    // Set up random number generators
+    // Set the variable x to 0
+    p->variables["x"] = 0;
+
+    // Configuration-based instruction count
+    int totalInstructions = 100000; // Must be even to alternate properly
+    p->totalInstructions = totalInstructions;
+
     std::random_device rd;
     std::mt19937 gen(rd());
+    std::uniform_int_distribution<> addValueDist(1, 10);
 
-    // number of instructions
-    std::uniform_int_distribution<> instructionCountDist(minIns, maxIns);
-    p->totalInstructions = instructionCountDist(gen);
-
-    // Available opcodes
-    std::vector<OpCode> opcodes = {OpCode::ADD, OpCode::SUBTRACT, OpCode::SLEEP, OpCode::PRINT, OpCode::FOR};
-    std::uniform_int_distribution<> opcodeDist(0, opcodes.size() - 1);
-    std::uniform_int_distribution<> valueDist(1, 100);
-    std::uniform_int_distribution<> sleepDist(3, 10);
-    std::uniform_int_distribution<> loopCountDist(2, 5);
-    std::uniform_int_distribution<> loopBodySizeDist(1, 3);
-
-    // Create random instructions
-    for (int i = 0; i < p->totalInstructions; ) {
-        OpCode opcode = opcodes[opcodeDist(gen)];
-    
-        switch (opcode) {
-            case OpCode::ADD:
-                p->instructionList.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
-                i++;
-                break;
-            case OpCode::SUBTRACT:
-                p->instructionList.push_back(Instruction(OpCode::SUBTRACT, {"x", "x", valueDist(gen)}));
-                i++;
-                break;
-            case OpCode::SLEEP:
-                p->instructionList.push_back(Instruction(OpCode::SLEEP, {sleepDist(gen)}));
-                i++;
-                break;
-            case OpCode::PRINT:
-                p->instructionList.push_back(Instruction(OpCode::PRINT, {}));
-                i++;
-                break;
-            case OpCode::FOR: {
-                // Random number of iterations (2-5)
-                int loopCount = loopCountDist(gen);
-                
-                // Create random instructions for loop body (1-3 instructions)
-                int loopBodySize = loopBodySizeDist(gen);
-                std::vector<Instruction> loopBody;
-                
-                for (int j = 0; j < loopBodySize; j++) {
-                    OpCode bodyOpcode = opcodes[opcodeDist(gen) % 4]; // Exclude FOR from body for simplicity
-                    switch (bodyOpcode) {
-                        case OpCode::ADD:
-                            loopBody.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
-                            break;
-                        case OpCode::SUBTRACT:
-                            loopBody.push_back(Instruction(OpCode::SUBTRACT, {"x", "x", valueDist(gen)}));
-                            break;
-                            /*
-                        case OpCode::SLEEP:
-                            loopBody.push_back(Instruction(OpCode::SLEEP, {sleepDist(gen)}));
-                            break;
-                            */
-                        case OpCode::PRINT:
-                            loopBody.push_back(Instruction(OpCode::PRINT, {}));
-                            break;
-                    }
-                }
-                
-                p->instructionList.push_back(Instruction(OpCode::FOR, {loopCount}, loopBody));
-                i++; // Only count the FOR instruction itself, not the body
-                break;
-            }
+    for (int i = 0; i < totalInstructions; i++) {
+        if (i % 2 == 0) {
+            // PRINT: Simulate printing "Value from: x"
+            p->instructionList.push_back(Instruction(OpCode::PRINT, {}));
+        } else {
+            // ADD: Simulate ADD(x, x, [1-10])
+            int valueToAdd = addValueDist(gen);
+            p->instructionList.push_back(Instruction(OpCode::ADD, {"x", "x", valueToAdd}));
         }
     }
 
-    p->variables["x"] = 0;
-
     readyQueue.push(p);
     allProcesses[p->name] = p;
-    cv.notify_all(); 
+    cv.notify_all();
 }
+
 
 
 

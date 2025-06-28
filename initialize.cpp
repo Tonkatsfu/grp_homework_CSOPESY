@@ -19,9 +19,7 @@ void initialize() {
         if (key == "num-cpu") {
             config >> numCPU;
         } else if (key == "scheduler") {
-            config >> std::ws; 
-            std::getline(config, scheduler, '"'); 
-            std::getline(config, scheduler, '"'); 
+            config >> scheduler;
         } else if (key == "quantum-cycles") {
             config >> quantumCycles;
         } else if (key == "batch-process-freq") {

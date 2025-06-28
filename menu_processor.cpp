@@ -6,6 +6,8 @@
 bool terminateProgram = false;
 bool isInitialized = false;
 
+std::mutex logFileMutex;
+
 void printHeader()
 {
     std::cout << "\033[36m ,-----. ,---.   ,-----. ,------. ,------. ,---.,--.   ,--. \n"
@@ -13,7 +15,14 @@ void printHeader()
               << "|  |    `.  `-. |  | |  ||  '--' ||  `--, `.  `-. '.    /   \n"
               << "'  '--'\\.-'    |'  '-'  '|  | --' |  `---..-'    |  |  |    \n"
               << " `-----'`-----'  `-----' `--'     `------'`-----'   `--'    \033[0m\n\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[32mHello, welcome to CSOPESY commandline!\033[0m\n";
+    std::cout << "Developers:\n";
+    std::cout << "Matthew Chua\n";
+    std::cout << "Ian Gabriel De Jesus\n";
+    std::cout << "Joemar Lapasaran\n";
+    std::cout << "Neo Monserrat\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m\n";
 
     /*
@@ -34,7 +43,11 @@ void processCommand(const std::string& command)
     if(isInitialized){
     if (command == "screen -ls")
     {
-        printSchedulerStatus();
+        if(currentScreenName.empty()){
+            printSchedulerStatus(std::cout);
+        }else{
+            std::cout << "Command can only be executed in main menu." << std::endl;
+        }
     }
     else if (command == "clear")
     {
@@ -106,32 +119,36 @@ void processCommand(const std::string& command)
     else if (command.rfind("screen -r ", 0) == 0)
     {
         std:: string screenName = command.substr(10);
-        if (screenName.empty())
-        {
-            std::cout << "Usage: screen -r <name>" << std::endl;
-            return;
-        }
-
-        if (allProcesses.count(screenName) && allProcesses[screenName]->finished == false)
+        std:: lock_guard<std::mutex> lock(mtx); 
+        auto it = allProcesses.find(screenName);
+        if (it != allProcesses.end() && it->second->finished == false)
         {
             currentScreenName = screenName;
-            ScreenConsoles(*allProcesses[screenName]);
+            ScreenConsoles(*it->second);
         }
 
         else
         {
-            std:: cout << "Process " << screenName << " not found. Please use screen -s " << screenName << " to create it." << std::endl;
+            std::cout << "No screen found with name: " << screenName << std::endl;
         }
     }
 
     else if (command == "scheduler -start")
     {
-        startDummyProcesses();
+        if(currentScreenName.empty()){
+            startDummyProcesses();
+        }else{
+            std::cout << "Command can only be executed in main menu." << std::endl;
+        }
     }
 
     else if (command == "scheduler -stop")
     {
-        stopDummyProcesses();
+        if(currentScreenName.empty()){
+            stopDummyProcesses();
+        }else{
+            std::cout << "Command can only be executed in main menu." << std::endl;
+        }
     }
 
     else if(command == "process-smi"){
@@ -142,14 +159,41 @@ void processCommand(const std::string& command)
             std:: cout << "You are currently not in a process screen, use screen -s <process name> to create one or screen -r <process name> to resume a process screen" << std::endl;
         }
     }
+    else if (command == "report -util")
+    {
+        if (currentScreenName != "") //if the current screen is not the main menu, thus a process screen. CHANGE THIS IF THERE WILL BE OTHER SCREENS THAN A PROCESS SCREEN!
+        {
+        std::lock_guard<std::mutex> logLock(logFileMutex); //lock the mutex to ensure thread safety
+        std::ofstream logFile("csopesy-log.txt", std::ios::app);
+        if (logFile.is_open())
+        {
+            auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+            char buffer[80];
+            strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S%p", std::localtime(&now));
 
+            printSchedulerStatus(logFile);
+            logFile.close();
+            std::cout << "Succesfully generated report in file csopesy-log.txt" << std::endl;
+            printSchedulerStatus(std::cout);
+        }
+
+        else
+        {
+            std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
+        }
+    }else{
+        std::cout << "Command can only be executed in main menu." << std::endl;
+    }
+    }
     else 
     {
         std::cout <<"Please enter a valid command." << std::endl;
     }
-    }else{
+    }
+    else
+    {
         if (command == "initialize"){
-            initialize();
+            //initialize();
             isInitialized = true;
         }else if (command == "exit"){
             terminateProgram = true;

@@ -28,6 +28,7 @@ int main()
 #include <chrono>
 
 #include "menu_processor.h"
+#include "initialize.h"
 #include "scheduler.h"
 #include "cpu_tick.h"
 #include "cpu_tick_global.h"
@@ -43,23 +44,28 @@ int main()
 #else
     system("clear");
 #endif
-
     printHeader();
-
-    ticker.start();
-    startScheduler();
 
     std::string command;
 
     while (!terminateProgram)
     {
+        /*
         if (currentScreenName.empty())
         {
             std::cout << "Enter a command: ";
         }
+            */
+
+        std::cout << "Enter a command: ";
 
         std::getline(std::cin, command);
 
+        if(isInitialized == false && command == "initialize"){
+            initialize();
+            ticker.start();
+            startScheduler();
+        }
         processCommand(command);
     }
 

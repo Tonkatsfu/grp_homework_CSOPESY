@@ -43,11 +43,7 @@ void processCommand(const std::string& command)
     if(isInitialized){
     if (command == "screen -ls")
     {
-        if(currentScreenName.empty()){
-            printSchedulerStatus(std::cout);
-        }else{
-            std::cout << "Command can only be executed in main menu." << std::endl;
-        }
+        printSchedulerStatus(std::cout);
     }
     else if (command == "clear")
     {
@@ -135,20 +131,12 @@ void processCommand(const std::string& command)
 
     else if (command == "scheduler -start")
     {
-        if(currentScreenName.empty()){
-            startDummyProcesses();
-        }else{
-            std::cout << "Command can only be executed in main menu." << std::endl;
-        }
+        startDummyProcesses();
     }
 
     else if (command == "scheduler -stop")
     {
-        if(currentScreenName.empty()){
-            stopDummyProcesses();
-        }else{
-            std::cout << "Command can only be executed in main menu." << std::endl;
-        }
+        stopDummyProcesses();
     }
 
     else if(command == "process-smi"){
@@ -161,8 +149,6 @@ void processCommand(const std::string& command)
     }
     else if (command == "report -util")
     {
-        if (currentScreenName != "") //if the current screen is not the main menu, thus a process screen. CHANGE THIS IF THERE WILL BE OTHER SCREENS THAN A PROCESS SCREEN!
-        {
         std::lock_guard<std::mutex> logLock(logFileMutex); //lock the mutex to ensure thread safety
         std::ofstream logFile("csopesy-log.txt", std::ios::app);
         if (logFile.is_open())
@@ -181,9 +167,6 @@ void processCommand(const std::string& command)
         {
             std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
         }
-    }else{
-        std::cout << "Command can only be executed in main menu." << std::endl;
-    }
     }
     else 
     {

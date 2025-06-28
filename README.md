@@ -1,8 +1,8 @@
 Developers:
-Matthew Chua - S22
-Ian Gabriel De Jesus - S22
-Joemar Lapasaran - S22
-Neo Monseratt - S22
+1. Matthew Chua - S22
+2. Ian Gabriel De Jesus - S22
+3. Joemar Lapasaran - S22
+4. Neo Monseratt - S22
 
 ### Compilation and Execution Steps for CMD
 

@@ -115,7 +115,7 @@ void processCommand(const std::string& command)
         std:: string screenName = command.substr(10);
         std:: lock_guard<std::mutex> lock(mtx); 
         auto it = allProcesses.find(screenName);
-        if (it != allProcesses.end())
+        if (it != allProcesses.end() && it->second->finished == false)
         {
             currentScreenName = screenName;
             ScreenConsoles(*it->second);
@@ -156,6 +156,7 @@ void processCommand(const std::string& command)
 
             printSchedulerStatus(logFile);
             logFile.close();
+            std::cout << "Succesfully generated report in file csopesy-log.txt" << std::endl;
             printSchedulerStatus(std::cout);
         }
 

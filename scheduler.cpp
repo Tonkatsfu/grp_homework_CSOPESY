@@ -55,44 +55,117 @@ void cpuWorker(int coreID)
 
         if (p)
         {
-            if (scheduler == "rr") {
+            if (scheduler == "\"rr\"") {
                 int slice = 0;
+                bool wasRequeued = false;
+
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
+                    if (delayPerExec == 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
                     }
-                    p->logPrintCommand(coreID);
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
+
+                    if (p->sleepTicksRemaining > 0) {
+                        p->sleepTicksRemaining--;
+
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        wasRequeued = true;
+                        break;
+                    }
+
+                     switch (instr.opcode) {
+                        case OpCode::ADD:
+                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SUBTRACT:
+                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SLEEP:
+                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
+                            break;
+                        case OpCode::PRINT:
+                            p->logPrintCommand(coreID);
+                            break;
+                        case OpCode::FOR:
+                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
+                            break;
+                    }
+
                     p->currentInstruction++;
                     slice++;
-                }
 
+                    if (p->sleepTicksRemaining > 0) {
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        wasRequeued = true;
+                        break;
+                    }
+            }
+
+            if (!wasRequeued) {
                 std::lock_guard<std::mutex> lock(mtx);
                 if (p->currentInstruction >= p->totalInstructions) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
-                    runningProcesses.erase(p->name);
                 } else {
-                    readyQueue.push(p); 
-                    runningProcesses.erase(p->name);
+                    readyQueue.push(p);
                 }
-            } else {
+                runningProcesses.erase(p->name);
+            }
+        }
+            else {
                 // FCFS
+                //std::cout << "scheduler is FCFS\n\n";
+
                 while (p->currentInstruction < p->totalInstructions) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0)
                     {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
                     }
-                    p->logPrintCommand(coreID);
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
+
+                    if(p->sleepTicksRemaining > 0){
+                        p->sleepTicksRemaining--;
+
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        break;
+                    }
+
+                    switch (instr.opcode) {
+                        case OpCode::ADD:
+                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SUBTRACT:
+                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SLEEP:
+                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
+                            break;
+                        case OpCode::PRINT:
+                            p->logPrintCommand(coreID);
+                            break;
+                        case OpCode::FOR:
+                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
+                            break;
+                    }
                     p->currentInstruction++;
                 }
 
                 std::lock_guard<std::mutex> lock(mtx);
-                p->finished = true;
-                finishedProcesses.push_back(p);
-                runningProcesses.erase(p->name);
+                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions) {
+                    p->finished = true;
+                    finishedProcesses.push_back(p);
+                    runningProcesses.erase(p->name);
+                }
+            
+
             }
         }
     }
@@ -156,6 +229,7 @@ void stopScheduler()
     }
 }
 
+/*
 void addNewProcess(const std::string& processName)
 {
     std::lock_guard<std::mutex> lock(mtx);
@@ -171,6 +245,95 @@ void addNewProcess(const std::string& processName)
     allProcesses[p->name] = p;
     cv.notify_all(); 
 }
+    */
+
+    
+void addNewProcess(const std::string& processName)
+{
+    std::lock_guard<std::mutex> lock(mtx);
+    Process* p = new Process(processName);
+    p->pid = pidCounter++;
+
+    // Set up random number generators
+    std::random_device rd;
+    std::mt19937 gen(rd());
+
+    // number of instructions
+    std::uniform_int_distribution<> instructionCountDist(minIns, maxIns);
+    p->totalInstructions = instructionCountDist(gen);
+
+    // Available opcodes
+    std::vector<OpCode> opcodes = {OpCode::ADD, OpCode::SUBTRACT, OpCode::SLEEP, OpCode::PRINT, OpCode::FOR};
+    std::uniform_int_distribution<> opcodeDist(0, opcodes.size() - 1);
+    std::uniform_int_distribution<> valueDist(1, 100);
+    std::uniform_int_distribution<> sleepDist(3, 10);
+    std::uniform_int_distribution<> loopCountDist(2, 5);
+    std::uniform_int_distribution<> loopBodySizeDist(1, 3);
+
+    // Create random instructions
+    for (int i = 0; i < p->totalInstructions; ) {
+        OpCode opcode = opcodes[opcodeDist(gen)];
+    
+        switch (opcode) {
+            case OpCode::ADD:
+                p->instructionList.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
+                i++;
+                break;
+            case OpCode::SUBTRACT:
+                p->instructionList.push_back(Instruction(OpCode::SUBTRACT, {"x", "x", valueDist(gen)}));
+                i++;
+                break;
+            case OpCode::SLEEP:
+                p->instructionList.push_back(Instruction(OpCode::SLEEP, {sleepDist(gen)}));
+                i++;
+                break;
+            case OpCode::PRINT:
+                p->instructionList.push_back(Instruction(OpCode::PRINT, {}));
+                i++;
+                break;
+            case OpCode::FOR: {
+                // Random number of iterations (2-5)
+                int loopCount = loopCountDist(gen);
+                
+                // Create random instructions for loop body (1-3 instructions)
+                int loopBodySize = loopBodySizeDist(gen);
+                std::vector<Instruction> loopBody;
+                
+                for (int j = 0; j < loopBodySize; j++) {
+                    OpCode bodyOpcode = opcodes[opcodeDist(gen) % 4]; // Exclude FOR from body for simplicity
+                    switch (bodyOpcode) {
+                        case OpCode::ADD:
+                            loopBody.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
+                            break;
+                        case OpCode::SUBTRACT:
+                            loopBody.push_back(Instruction(OpCode::SUBTRACT, {"x", "x", valueDist(gen)}));
+                            break;
+                            /*
+                        case OpCode::SLEEP:
+                            loopBody.push_back(Instruction(OpCode::SLEEP, {sleepDist(gen)}));
+                            break;
+                            */
+                        case OpCode::PRINT:
+                            loopBody.push_back(Instruction(OpCode::PRINT, {}));
+                            break;
+                    }
+                }
+                
+                p->instructionList.push_back(Instruction(OpCode::FOR, {loopCount}, loopBody));
+                i++; // Only count the FOR instruction itself, not the body
+                break;
+            }
+        }
+    }
+
+    p->variables["x"] = 0;
+
+    readyQueue.push(p);
+    allProcesses[p->name] = p;
+    cv.notify_all(); 
+}
+
+
 
 
 void printSchedulerStatus(std::ostream& os)

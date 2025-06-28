@@ -6,6 +6,8 @@
 bool terminateProgram = false;
 bool isInitialized = false;
 
+std::mutex logFileMutex;
+
 void printHeader()
 {
     std::cout << "\033[36m ,-----. ,---.   ,-----. ,------. ,------. ,---.,--.   ,--. \n"
@@ -147,6 +149,7 @@ void processCommand(const std::string& command)
     }
     else if (command == "report -util")
     {
+        std::lock_guard<std::mutex> logLock(logFileMutex); //lock the mutex to ensure thread safety
         std::ofstream logFile("csopesy-log.txt", std::ios::app);
         if (logFile.is_open())
         {

@@ -155,7 +155,7 @@ void cpuWorker(int coreID)
                                 } else {
                                 p->logPrintCommand(coreID, ""); // Fallback
                             }
-                            break;
+                        break;
                         case OpCode::FOR:
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
                             break;
@@ -279,6 +279,8 @@ void addNewProcess(const std::string& processName) {
     for (int i = 0; i < p->totalInstructions; i++) {
         if (i % 2 == 0) { // PRINT instruction
             // Create PRINT instruction with formatted string
+            std::string printMsg = "Value from: " + std::to_string(p->variables["x"]);
+            p->instructionList.push_back(Instruction(OpCode::PRINT, {printMsg}));
         } 
         else { // ADD instruction
             int addValue = addValueDist(gen);

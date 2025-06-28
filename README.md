@@ -1,3 +1,9 @@
+Developers:
+Matthew Chua - S22
+Ian Gabriel De Jesus - S22
+Joemar Lapasaran - S22
+Neo Monseratt - S22
+
 ### Compilation and Execution Steps for CMD
 
 1. **Open Command Prompt (CMD)**  
@@ -18,3 +24,7 @@
 2. Compile and run the program by entering the following:
    ```bash
    g++ main.cpp menu_processor.cpp scheduler.cpp screen_processor.cpp initialize.cpp cpu_tick.cpp cpu_tick_global.cpp -std=c++17 -pthread; if ($?) { ./a.exe }
+
+### Instructions
+1. After compiling, type initialize to set up essential parameters (CPU, scheduler type, quantum cycles, frequency) and start the whole functionality of the program
+

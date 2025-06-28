@@ -87,7 +87,7 @@ void cpuWorker(int coreID)
                             p->SLEEP(std::get<int>(instr.args[0]), coreID);
                             break;
                         case OpCode::PRINT:
-                            p->logPrintCommand(coreID);
+                            p->logPrintCommand(coreID, "");
                             break;
                         case OpCode::FOR:
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
@@ -149,7 +149,7 @@ void cpuWorker(int coreID)
                             p->SLEEP(std::get<int>(instr.args[0]), coreID);
                             break;
                         case OpCode::PRINT:
-                            p->logPrintCommand(coreID);
+                            p->logPrintCommand(coreID, "");
                             break;
                         case OpCode::FOR:
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);

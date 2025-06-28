@@ -55,7 +55,7 @@ struct Process
     bool finished = false;
     std::vector<std::string> logs;
     std::ofstream logFile;  // <-- Log for "print" commands
-    std::map<std::string, int> variables; //map for storing declared variables of key value pair var name and value
+    std::map<std::string, int> variables; //map for storing dzeclared variables of key value pair var name and value
     int sleepTicksRemaining = 0; // Number of ticks left to sleep
     bool isSleeping() const { return sleepTicksRemaining > 0; }
     std::vector<Instruction> instructionList;
@@ -79,15 +79,21 @@ struct Process
             logFile.close();
     }
 
-    void logPrintCommand(int coreID) {
+    void logPrintCommand(int coreID, std::string s) {
         if (logFile.is_open()) {
             auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
             char buffer[80];
             strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
             std::ostringstream oss;
-            oss << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
-            logs.push_back(oss.str());
-            logFile << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
+            if(s == ""){
+                oss << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
+                logs.push_back(oss.str());
+                logFile << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
+            }else{
+                oss << "[" << buffer << "] Core " << coreID << ": " << s << "\n";
+                logs.push_back(oss.str());
+                logFile << "[" << buffer << "] Core " << coreID << ": " << s << "\n";;
+            }
             logFile.flush();
         }
     }
@@ -251,7 +257,7 @@ struct Process
                     SLEEP(std::get<int>(instr.args[0]), coreID);
                     break;
                 case OpCode::PRINT:
-                    logPrintCommand(coreID);
+                    logPrintCommand(coreID, "");
                     break;
                 case OpCode::FOR:
                     FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);

@@ -85,11 +85,15 @@ struct Process
             char buffer[80];
             strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
             std::ostringstream oss;
-            
+            if(s == ""){
+                oss << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
+                logs.push_back(oss.str());
+                logFile << "[" << buffer << "] Core " << coreID << ": Hello world from " << name << "! \n";
+            }else{
                 oss << "[" << buffer << "] Core " << coreID << ": " << s << "\n";
                 logs.push_back(oss.str());
                 logFile << "[" << buffer << "] Core " << coreID << ": " << s << "\n";;
-            
+            }
             logFile.flush();
         }
     }
@@ -156,7 +160,8 @@ struct Process
         strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
         std::ostringstream oss;
 
-        oss << "[" << buffer << "] Core " << coreID << ": Value from: " << result << "\n";
+        oss << "[" << buffer << "] Core " << coreID << ": ADD " << destVar
+            << " = " << value2 << " + " << value3 << " = " << result << "\n";
 
         logs.push_back(oss.str());
         logFile << oss.str();

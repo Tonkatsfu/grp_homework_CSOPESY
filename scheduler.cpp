@@ -60,13 +60,6 @@ void cpuWorker(int coreID)
                 bool wasRequeued = false;
 
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
-                    if (!initialized) 
-                    {  
-                        std::lock_guard<std::mutex> lock(mtx);
-                        readyQueue.push(p); 
-                        runningProcesses.erase(p->name);
-                        return; 
-                    }
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -265,13 +258,7 @@ void addNewProcess(const std::string& processName) {
     Process* p = new Process(processName);
     p->pid = pidCounter++;
 
-    // Set the variable x to 0
-    p->variables["x"] = 0;
-
-    // Configuration-based instruction count
-    int totalInstructions = 100000; // Must be even to alternate properly
-    p->totalInstructions = totalInstructions;
-
+    // Set up random number generators
     std::random_device rd;
     std::mt19937 gen(rd());
 
@@ -303,9 +290,7 @@ void addNewProcess(const std::string& processName) {
     readyQueue.push(p);
     allProcesses[p->name] = p;
     cv.notify_all();
-    cv.notify_all();
 }
-
 
 
 
@@ -408,15 +393,23 @@ void startDummyProcesses()
     }
 }
 
-void stopDummyProcesses()
-{
-    if (generateProcess.load())
-    {
+void stopDummyProcesses() {
+    if (generateProcess.load()) {
         generateProcess.store(false);
-        if (dummyProcessThread && dummyProcessThread->joinable())
-        {
+        
+        // Wait for dummy process thread to finish
+        if (dummyProcessThread && dummyProcessThread->joinable()) {
             dummyProcessThread->join();
             dummyProcessThread.reset();
+        }
+
+        // Clean up all processes
+        std::lock_guard<std::mutex> lock(mtx);
+        for (auto& pair : allProcesses) {
+            if (pair.second->logFile.is_open()) {
+                pair.second->logFile.flush();
+                pair.second->logFile.close();
+            }
         }
     }
 }

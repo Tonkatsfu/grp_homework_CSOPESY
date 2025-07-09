@@ -59,6 +59,7 @@ struct Process
     int sleepTicksRemaining = 0; // Number of ticks left to sleep
     bool isSleeping() const { return sleepTicksRemaining > 0; }
     std::vector<Instruction> instructionList;
+    bool memoryAllocated = false; // Flag to check if memory is allocated for the process
 
 
     Process(const std::string& n) : name(n), startTime(std::time(nullptr))

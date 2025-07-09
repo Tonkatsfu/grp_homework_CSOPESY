@@ -57,6 +57,19 @@ void cpuWorker(int coreID)
 
         if (p)
         {
+            if (p && !p->memoryAllocated)
+            {
+                if (!allocateMemory(p->pid, memPerProc))
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    readyQueue.push(p);
+                    runningProcesses.erase(p->name);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                p->memoryAllocated = true;
+            }
+            
             if (scheduler == "\"rr\"") {
                 int slice = 0;
                 bool wasRequeued = false;
@@ -114,6 +127,7 @@ void cpuWorker(int coreID)
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     deallocateMemory(p->pid);
+                    p->memoryAllocated = false;
                 } else {
                     readyQueue.push(p);
                 }
@@ -167,6 +181,7 @@ void cpuWorker(int coreID)
                     finishedProcesses.push_back(p);
                     runningProcesses.erase(p->name);
                     deallocateMemory(p->pid);
+                    p->memoryAllocated = false;
                 }
             
 
@@ -257,13 +272,6 @@ void addNewProcess(const std::string& processName)
     std::lock_guard<std::mutex> lock(mtx);
     Process* p = new Process(processName);
     p->pid = pidCounter++;
-
-    if (!allocateMemory(p->pid, memPerProc))
-    {
-        std::cerr << "Failed to allocate memory for process: " << processName << "\n";
-        delete p; // Clean up if memory allocation fails
-        return;
-    }
 
     // Set up random number generators
     std::random_device rd;

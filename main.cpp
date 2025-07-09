@@ -32,8 +32,12 @@ int main()
 #include "scheduler.h"
 #include "cpu_tick.h"
 #include "cpu_tick_global.h"
+#include "memory_manager.h"
 
 CpuTicker ticker;
+
+std::map<int, std::string> processesInMemoryMap;
+int nextProcessId = 1;
 
 int main()
 {
@@ -63,8 +67,10 @@ int main()
 
         if(isInitialized == false && command == "initialize"){
             initialize();
+            initializeMemoryManager();
             ticker.start();
             startScheduler();
+            isInitialized = true;
         }
         processCommand(command);
     }

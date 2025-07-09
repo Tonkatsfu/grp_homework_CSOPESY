@@ -4,7 +4,8 @@
 #pragma once
 #include <string>
 
-extern int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec;
+extern int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, 
+           maxOverallMem, memPerFrame, memPerProc;
 extern std::string scheduler;
 
 void initialize();

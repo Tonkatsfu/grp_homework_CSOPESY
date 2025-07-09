@@ -1,6 +1,8 @@
 #include "scheduler.h"
 #include "initialize.h"
 #include "menu_processor.h"
+#include "cpu_tick_global.h"
+#include "memory_manager.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -111,6 +113,7 @@ void cpuWorker(int coreID)
                 if (p->currentInstruction >= p->totalInstructions) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
+                    deallocateMemory(p->pid);
                 } else {
                     readyQueue.push(p);
                 }
@@ -163,6 +166,7 @@ void cpuWorker(int coreID)
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     runningProcesses.erase(p->name);
+                    deallocateMemory(p->pid);
                 }
             
 
@@ -253,6 +257,13 @@ void addNewProcess(const std::string& processName)
     std::lock_guard<std::mutex> lock(mtx);
     Process* p = new Process(processName);
     p->pid = pidCounter++;
+
+    if (!allocateMemory(p->pid, memPerProc))
+    {
+        std::cerr << "Failed to allocate memory for process: " << processName << "\n";
+        delete p; // Clean up if memory allocation fails
+        return;
+    }
 
     // Set up random number generators
     std::random_device rd;
@@ -419,7 +430,10 @@ void dummyProcessGenerator()
         ticks++;
         if (ticks >= batchProcessFreq)
         {
-            addNewProcess("p" + std::to_string(counter++));
+            if (hasEnoughFreeMemory(memPerProc))
+            {
+                addNewProcess("p" + std::to_string(counter++));
+            }
             ticks = 0;
         }
     }

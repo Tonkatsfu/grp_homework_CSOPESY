@@ -60,6 +60,8 @@ struct Process
     bool isSleeping() const { return sleepTicksRemaining > 0; }
     std::vector<Instruction> instructionList;
     bool memoryAllocated = false; // Flag to check if memory is allocated for the process
+    size_t lowerLimit = 0;
+    size_t upperLimit = 0;
 
 
     Process(const std::string& n) : name(n), startTime(std::time(nullptr))

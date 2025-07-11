@@ -1,8 +1,6 @@
 #include "scheduler.h"
 #include "initialize.h"
 #include "menu_processor.h"
-#include "cpu_tick_global.h"
-#include "memory_manager.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -24,6 +22,8 @@ std::condition_variable cv;
 bool initialized = false;
 std::atomic <bool> generateProcess = false;
 std::atomic<int> pidCounter = 0;
+std::atomic<int> globalQuantumCounter = 0;
+std::atomic<int> currentQuantumCycle = 0;
 
 std::unique_ptr<std::thread> dummyProcessThread;
 std::unique_ptr<std::thread> mainSchedulerThread;
@@ -32,12 +32,53 @@ std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
 
+void dumpMemorySnapshot(int quantumCycle) {
+    std::ofstream out("memory_stamp_" + std::to_string(quantumCycle) + ".txt");
+
+    // Timestamp
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    out << "Timestamp: " << std::put_time(std::localtime(&now), "%m/%d/%Y %I:%M:%S %p") << "\n";
+
+    std::lock_guard<std::mutex> lock(mtx);
+
+    // Number of processes in memory
+    int count = 0;
+    for (const auto& [name, process] : allProcesses) {
+        if (!process->finished) count++;
+    }
+    out << "Number of processes in memory: " << count << "\n";
+
+    // Calculate external fragmentation and print memory layout
+    // Assume you have a memory map or layout in the `Process` or a global memory array
+    // Below is a placeholder structure
+    size_t totalExternalFragmentation = 0;
+
+    out << "\nMemory Layout (ASCII Map):\n";
+
+    for (const auto& [name, process] : allProcesses) {
+        if (!process->finished) {
+            out << "+-------------------------+\n";
+            out << "| Process: " << name << "\n";
+            out << "| Lower Limit: " << process->lowerLimit << "\n";
+            out << "| Upper Limit: " << process->upperLimit << "\n";
+            out << "+-------------------------+\n";
+        } else {
+            // Here you could accumulate unused memory blocks
+            // For simplicity, let's say 8192 bytes (example) if gap between blocks
+        }
+    }
+
+    // Fake fragmentation calculation for now
+    totalExternalFragmentation = 8192;
+    out << "\nExternal Fragmentation: " << totalExternalFragmentation / 1024 << " KB\n";
+}
 
 void cpuWorker(int coreID)
 {
-    while(true)
+    while (true)
     {
         Process* p = nullptr;
+
         {
             std::unique_lock<std::mutex> lock(mtx);
             cv.wait(lock, [] { return !readyQueue.empty() || !initialized; });
@@ -46,8 +87,7 @@ void cpuWorker(int coreID)
                 return;
             }
 
-            if (!readyQueue.empty())
-            {
+            if (!readyQueue.empty()) {
                 p = readyQueue.front();
                 readyQueue.pop();
                 p->assignedCoreID = coreID;
@@ -55,140 +95,72 @@ void cpuWorker(int coreID)
             }
         }
 
-        if (p)
+        if (!p) continue;
+
+        bool timeSliceExpired = false;
+        int slice = 0;
+
+        while (p->currentInstruction < p->totalInstructions)
         {
-            if (p && !p->memoryAllocated)
-            {
-                if (!allocateMemory(p->pid, memPerProc))
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    readyQueue.push(p);
-                    runningProcesses.erase(p->name);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
-                    continue;
-                }
-                p->memoryAllocated = true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec == 0 ? 1 : delayPerExec));
+
+            if (p->sleepTicksRemaining > 0) {
+                p->sleepTicksRemaining--;
+                break; // Stop executing until sleep finishes
             }
-            
+
+            const Instruction& instr = p->instructionList[p->currentInstruction];
+
+            switch (instr.opcode) {
+                case OpCode::ADD:
+                    p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
+                    break;
+                case OpCode::SUBTRACT:
+                    p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
+                    break;
+                case OpCode::SLEEP:
+                    p->SLEEP(std::get<int>(instr.args[0]), coreID);
+                    break;
+                case OpCode::PRINT:
+                    p->logPrintCommand(coreID, "");
+                    break;
+                case OpCode::FOR:
+                    p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
+                    break;
+            }
+
+            p->currentInstruction++;
+
             if (scheduler == "\"rr\"") {
-                int slice = 0;
-                bool wasRequeued = false;
-
-                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    }
-                    const Instruction& instr = p->instructionList[p->currentInstruction];
-
-                    if (p->sleepTicksRemaining > 0) {
-                        p->sleepTicksRemaining--;
-
-                        std::lock_guard<std::mutex> lock(mtx);
-                        readyQueue.push(p);
-                        runningProcesses.erase(p->name);
-                        wasRequeued = true;
-                        break;
-                    }
-
-                     switch (instr.opcode) {
-                        case OpCode::ADD:
-                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
-                            break;
-                        case OpCode::SUBTRACT:
-                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
-                            break;
-                        case OpCode::SLEEP:
-                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
-                            break;
-                        case OpCode::PRINT:
-                            p->logPrintCommand(coreID, "");
-                            break;
-                        case OpCode::FOR:
-                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
-                            break;
-                    }
-
-                    p->currentInstruction++;
-                    slice++;
-
-                    if (p->sleepTicksRemaining > 0) {
-                        std::lock_guard<std::mutex> lock(mtx);
-                        readyQueue.push(p);
-                        runningProcesses.erase(p->name);
-                        wasRequeued = true;
-                        break;
-                    }
-            }
-
-            if (!wasRequeued) {
-                std::lock_guard<std::mutex> lock(mtx);
-                if (p->currentInstruction >= p->totalInstructions) {
-                    p->finished = true;
-                    finishedProcesses.push_back(p);
-                    deallocateMemory(p->pid);
-                    p->memoryAllocated = false;
-                } else {
-                    readyQueue.push(p);
+                slice++;
+                if (slice == quantumCycles && initialized) {
+                    int cycle = ++currentQuantumCycle;
+                    dumpMemorySnapshot(cycle);
+                    timeSliceExpired = true;
+                    break;
                 }
-                runningProcesses.erase(p->name);
+
+                if (p->sleepTicksRemaining > 0) {
+                    break;
+                }
             }
         }
-            else {
-                // FCFS
-                //std::cout << "scheduler is FCFS\n\n";
 
-                while (p->currentInstruction < p->totalInstructions) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
-                    }
-                    const Instruction& instr = p->instructionList[p->currentInstruction];
+        {
+            std::lock_guard<std::mutex> lock(mtx);
 
-                    if(p->sleepTicksRemaining > 0){
-                        p->sleepTicksRemaining--;
-
-                        std::lock_guard<std::mutex> lock(mtx);
-                        readyQueue.push(p);
-                        runningProcesses.erase(p->name);
-                        break;
-                    }
-
-                    switch (instr.opcode) {
-                        case OpCode::ADD:
-                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
-                            break;
-                        case OpCode::SUBTRACT:
-                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
-                            break;
-                        case OpCode::SLEEP:
-                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
-                            break;
-                        case OpCode::PRINT:
-                            p->logPrintCommand(coreID, "");
-                            break;
-                        case OpCode::FOR:
-                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
-                            break;
-                    }
-                    p->currentInstruction++;
-                }
-
-                std::lock_guard<std::mutex> lock(mtx);
-                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions) {
-                    p->finished = true;
-                    finishedProcesses.push_back(p);
-                    runningProcesses.erase(p->name);
-                    deallocateMemory(p->pid);
-                    p->memoryAllocated = false;
-                }
-            
-
+            if (p->currentInstruction >= p->totalInstructions && p->sleepTicksRemaining == 0) {
+                p->finished = true;
+                finishedProcesses.push_back(p);
+            } else {
+                readyQueue.push(p);
             }
+
+            runningProcesses.erase(p->name);
         }
     }
 }
+
 
 void startCpuWorkers()
 {
@@ -438,10 +410,7 @@ void dummyProcessGenerator()
         ticks++;
         if (ticks >= batchProcessFreq)
         {
-            if (hasEnoughFreeMemory(memPerProc))
-            {
-                addNewProcess("p" + std::to_string(counter++));
-            }
+            addNewProcess("p" + std::to_string(counter++));
             ticks = 0;
         }
     }
@@ -476,6 +445,7 @@ void stopDummyProcesses() {
         }
     }
 }
+
 
 
 

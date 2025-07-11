@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "initialize.h"
 #include "menu_processor.h"
+#include "memory_manager.h"
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -60,21 +61,20 @@ void dumpMemorySnapshot(int quantumCycle) {
             out << "| Upper Limit: " << process->upperLimit << "\n";
             out << "+-------------------------+\n";
         } else {
-            
+           
         }
     }
 
-    // Fake fragmentation calculation
+    // Fake fragmentation calculation 
     totalExternalFragmentation = 8192;
     out << "\nExternal Fragmentation: " << totalExternalFragmentation / 1024 << " KB\n";
 }
 
 void cpuWorker(int coreID)
 {
-    while (true)
+    while(true)
     {
         Process* p = nullptr;
-
         {
             std::unique_lock<std::mutex> lock(mtx);
             cv.wait(lock, [] { return !readyQueue.empty() || !initialized; });
@@ -83,7 +83,8 @@ void cpuWorker(int coreID)
                 return;
             }
 
-            if (!readyQueue.empty()) {
+            if (!readyQueue.empty())
+            {
                 p = readyQueue.front();
                 readyQueue.pop();
                 p->assignedCoreID = coreID;
@@ -91,68 +92,143 @@ void cpuWorker(int coreID)
             }
         }
 
-        if (!p) continue;
-
-        bool timeSliceExpired = false;
-        int slice = 0;
-
-        while (p->currentInstruction < p->totalInstructions)
+        if (p)
         {
-            std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec == 0 ? 1 : delayPerExec));
-
-            if (p->sleepTicksRemaining > 0) {
-                p->sleepTicksRemaining--;
-                break; // Stop executing until sleep finishes
+            if (p && !p->memoryAllocated)
+            {
+                if (!allocateMemory(p->pid, memPerProc))
+                {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    readyQueue.push(p);
+                    runningProcesses.erase(p->name);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    continue;
+                }
+                p->memoryAllocated = true;
             }
-
-            const Instruction& instr = p->instructionList[p->currentInstruction];
-
-            switch (instr.opcode) {
-                case OpCode::ADD:
-                    p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
-                    break;
-                case OpCode::SUBTRACT:
-                    p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
-                    break;
-                case OpCode::SLEEP:
-                    p->SLEEP(std::get<int>(instr.args[0]), coreID);
-                    break;
-                case OpCode::PRINT:
-                    p->logPrintCommand(coreID, "");
-                    break;
-                case OpCode::FOR:
-                    p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
-                    break;
-            }
-
-            p->currentInstruction++;
-
+            
             if (scheduler == "\"rr\"") {
-                slice++;
-                if (slice == quantumCycles && initialized) {
+                int slice = 0;
+                bool wasRequeued = false;
+
+                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    if (delayPerExec == 0) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                    }
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
+
+                    if (p->sleepTicksRemaining > 0) {
+                        p->sleepTicksRemaining--;
+
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        wasRequeued = true;
+                        break;
+                    }
+
+                     switch (instr.opcode) {
+                        case OpCode::ADD:
+                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SUBTRACT:
+                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SLEEP:
+                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
+                            break;
+                        case OpCode::PRINT:
+                            p->logPrintCommand(coreID, "");
+                            break;
+                        case OpCode::FOR:
+                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
+                            break;
+                    }
+
+                    p->currentInstruction++;
+                    slice++;
+                    if (slice == quantumCycles && initialized) {
                     int cycle = ++currentQuantumCycle;
                     dumpMemorySnapshot(cycle);
-                    timeSliceExpired = true;
                     break;
-                }
+                    }
 
-                if (p->sleepTicksRemaining > 0) {
-                    break;
+
+                    if (p->sleepTicksRemaining > 0) {
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        wasRequeued = true;
+                        break;
+                    }
+            }
+
+            if (!wasRequeued) {
+                std::lock_guard<std::mutex> lock(mtx);
+                if (p->currentInstruction >= p->totalInstructions) {
+                    p->finished = true;
+                    finishedProcesses.push_back(p);
+                    deallocateMemory(p->pid);
+                    p->memoryAllocated = false;
+                } else {
+                    readyQueue.push(p);
                 }
+                runningProcesses.erase(p->name);
             }
         }
+            else {
+                // FCFS
+                //std::cout << "scheduler is FCFS\n\n";
 
-        {
-            std::lock_guard<std::mutex> lock(mtx);
+                while (p->currentInstruction < p->totalInstructions) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+                    if (delayPerExec == 0)
+                    {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
+                    }
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
 
-            if (p->currentInstruction >= p->totalInstructions && p->sleepTicksRemaining == 0) {
-                p->finished = true;
-                finishedProcesses.push_back(p);
-            } else {
-                readyQueue.push(p);
+                    if(p->sleepTicksRemaining > 0){
+                        p->sleepTicksRemaining--;
+
+                        std::lock_guard<std::mutex> lock(mtx);
+                        readyQueue.push(p);
+                        runningProcesses.erase(p->name);
+                        break;
+                    }
+
+                    switch (instr.opcode) {
+                        case OpCode::ADD:
+                            p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SUBTRACT:
+                            p->SUBTRACT(instr.args[0], instr.args[1], instr.args[2], coreID);
+                            break;
+                        case OpCode::SLEEP:
+                            p->SLEEP(std::get<int>(instr.args[0]), coreID);
+                            break;
+                        case OpCode::PRINT:
+                            p->logPrintCommand(coreID, "");
+                            break;
+                        case OpCode::FOR:
+                            p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
+                            break;
+                    }
+                    p->currentInstruction++;
+                }
+
+                std::lock_guard<std::mutex> lock(mtx);
+                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions) {
+                    p->finished = true;
+                    finishedProcesses.push_back(p);
+                    runningProcesses.erase(p->name);
+                    deallocateMemory(p->pid);
+                    p->memoryAllocated = false;
+                }
+            
+
             }
-
-            runningProcesses.erase(p->name);
         }
     }
 }
@@ -392,55 +468,56 @@ void printSchedulerStatus(std::ostream& os)
     }
 }
 
-void dummyProcessGenerator()
-{
+void dummyProcessGenerator() {
     int ticks = 0;
     int counter = 0;
-    while (generateProcess)
-    {
-        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-        if (delayPerExec == 0)
-        {
+
+    while (generateProcess.load()) {
+        if (delayPerExec == 0) {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } else {
+            std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
         }
-        ticks++;
-        if (ticks >= batchProcessFreq)
-        {
+
+        ++ticks;
+        if (ticks >= batchProcessFreq) {
             addNewProcess("p" + std::to_string(counter++));
             ticks = 0;
         }
     }
 }
 
-void startDummyProcesses()
-{
-    if (!generateProcess.load())
-    {
+void startDummyProcesses() {
+    if (!generateProcess.load()) {
         generateProcess.store(true);
         dummyProcessThread = std::make_unique<std::thread>(dummyProcessGenerator);
+        std::cout << "[dummy] Dummy process generator started.\n";
     }
 }
 
 void stopDummyProcesses() {
-    if (generateProcess.load()) {
-        generateProcess.store(false);
+    if (generateProcess.exchange(false)) {  
+        std::cout << "[dummy] Stopping dummy processes...\n";
 
-        // Wait for dummy process thread to finish
-        if (dummyProcessThread && dummyProcessThread->joinable()) {
-            dummyProcessThread->join();
+        if (dummyProcessThread) {
+            if (dummyProcessThread->joinable()) {
+                dummyProcessThread->join();
+            }
             dummyProcessThread.reset();
         }
 
-        // Clean up all processes
         std::lock_guard<std::mutex> lock(mtx);
-        for (auto& pair : allProcesses) {
-            if (pair.second->logFile.is_open()) {
-                pair.second->logFile.flush();
-                pair.second->logFile.close();
+        for (auto& [name, process] : allProcesses) {
+            if (process && process->logFile.is_open()) {
+                process->logFile.flush();
+                process->logFile.close();
             }
         }
+
+        std::cout << "[dummy] All dummy processes cleaned up.\n";
     }
 }
+
 
 
 

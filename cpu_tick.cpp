@@ -7,7 +7,7 @@ void CpuTicker::start() {
         while (running) {
             tickCount++;
             if (tickCallback) tickCallback();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simulated 1 tick
+            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simulate 1 tick
         }
     });
 }

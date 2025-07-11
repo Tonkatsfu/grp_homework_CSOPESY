@@ -43,7 +43,8 @@ void initialize() {
         }
     }
 
-    std::cout << "Configuration Loaded:\n"
+    std::cout << "\n"
+              << "Configuration Loaded:\n"
               << "  numCPU: " << numCPU << "\n"
               << "  scheduler: " << scheduler << "\n"
               << "  quantumCycles: " << quantumCycles << "\n"

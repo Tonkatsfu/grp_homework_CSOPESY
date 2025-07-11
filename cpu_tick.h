@@ -9,7 +9,7 @@ class CpuTicker {
 public:
     void start();  
     void stop();
-    void registerCallback(std::function<void()> callback);  // hook called every tick
+    void registerCallback(std::function<void()> callback); 
     uint64_t getTickCount() const;
 
 private:

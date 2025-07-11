@@ -48,9 +48,6 @@ void dumpMemorySnapshot(int quantumCycle) {
     }
     out << "Number of processes in memory: " << count << "\n";
 
-    // Calculate external fragmentation and print memory layout
-    // Assume you have a memory map or layout in the `Process` or a global memory array
-    // Below is a placeholder structure
     size_t totalExternalFragmentation = 0;
 
     out << "\nMemory Layout (ASCII Map):\n";
@@ -63,12 +60,11 @@ void dumpMemorySnapshot(int quantumCycle) {
             out << "| Upper Limit: " << process->upperLimit << "\n";
             out << "+-------------------------+\n";
         } else {
-            // Here you could accumulate unused memory blocks
-            // For simplicity, let's say 8192 bytes (example) if gap between blocks
+            
         }
     }
 
-    // Fake fragmentation calculation for now
+    // Fake fragmentation calculation
     totalExternalFragmentation = 8192;
     out << "\nExternal Fragmentation: " << totalExternalFragmentation / 1024 << " KB\n";
 }

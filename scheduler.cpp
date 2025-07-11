@@ -112,31 +112,31 @@ void cpuWorker(int coreID)
                     p->currentInstruction++;
                     slice++;
                     globalQuantumCycleCounter++;
+                    
+                    std::string filename = "memory_stamp_" + std::to_string(globalQuantumCycleCounter.load()) + ".txt";
+                    std::ofstream snapshot(filename);
+                    
+                    if (snapshot.is_open()) {
+                        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+                        snapshot << "Timestamp: " << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S") << "\n";
 
-std::string filename = "memory_stamp_" + std::to_string(globalQuantumCycleCounter.load()) + ".txt";
-std::ofstream snapshot(filename);
+                        std::vector<MemoryBlock> allocated = getAllocatedBlocks();
+                        snapshot << "Number of processes in memory: " << allocated.size() << "\n";
 
-if (snapshot.is_open()) {
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    snapshot << "Timestamp: " << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S") << "\n";
+                        int fragmentationKB = calculateExternalFragmentation();
+                        snapshot << "Total external fragmentation: " << fragmentationKB << " KB\n\n";
 
-    std::vector<MemoryBlock> allocated = getAllocatedBlocks();
-    snapshot << "Number of processes in memory: " << allocated.size() << "\n";
+                        snapshot << "Memory Layout:\n";
 
-    int fragmentationKB = calculateExternalFragmentation();
-    snapshot << "Total external fragmentation: " << fragmentationKB << " KB\n\n";
+                        for (const auto& block : allocated) {
+                            int upperLimit = block.startAddress + block.size - 1;
+                            snapshot << "Upper limit: " << upperLimit << "\n";
+                            snapshot << "Process ID: " << block.processId << "\n";
+                            snapshot << "Lower limit: " << block.startAddress << "\n\n";
+                        }
 
-    snapshot << "Memory Layout:\n";
-
-    for (const auto& block : allocated) {
-        int upperLimit = block.startAddress + block.size - 1;
-        snapshot << "Upper limit: " << upperLimit << "\n";
-        snapshot << "Process ID: " << block.processId << "\n";
-        snapshot << "Lower limit: " << block.startAddress << "\n\n";
-    }
-
-    snapshot.close();
-}
+                        snapshot.close();
+                    }
 
                     if (p->sleepTicksRemaining > 0) {
                         std::lock_guard<std::mutex> lock(mtx);
@@ -286,26 +286,6 @@ void stopScheduler()
         }
     }
 }
-
-
-/*
-void addNewProcess(const std::string& processName)
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    Process* p = new Process(processName);
-    p->pid = pidCounter++;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(minIns, maxIns);
-    p->totalInstructions = dist(gen);
-
-    readyQueue.push(p);
-    allProcesses[p->name] = p;
-    cv.notify_all(); 
-}
-    */
-
     
 void addNewProcess(const std::string& processName)
 {
@@ -391,9 +371,6 @@ void addNewProcess(const std::string& processName)
     allProcesses[p->name] = p;
     cv.notify_all(); 
 }
-
-
-
 
 void printSchedulerStatus(std::ostream& os)
 {

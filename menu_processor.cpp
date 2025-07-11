@@ -115,17 +115,17 @@ void processCommand(const std::string& command) {
         } 
         else if (command == "scheduler -start") {
             system("cls");
+            printHeader();
             std::cout << "Scheduler started!" << std::endl;
-            ticker.start();
             startScheduler();
             startDummyProcesses();
         } 
         else if (command == "scheduler -stop") {
             system("cls");
+            printHeader();
             std::cout << "Scheduler stopped!" << std::endl;
             stopDummyProcesses();
             stopScheduler();
-            ticker.stop();
         } 
         else if (command == "process-smi") {
             if (currentScreenName != "") {
@@ -157,6 +157,7 @@ void processCommand(const std::string& command) {
     else {
         if (command == "initialize") {
             system("cls");
+            printHeader();
             isInitialized = true;
             initialize();
             initializeMemoryManager();

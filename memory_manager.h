@@ -22,5 +22,8 @@ void initializeMemoryManager();
 bool allocateMemory(int processID, int memoryRequired);
 void deallocateMemory(int processID);
 bool hasEnoughFreeMemory(int requiredMem);
+std::vector<MemoryBlock> getAllocatedBlocks();
+int calculateExternalFragmentation();
+
 
 #endif

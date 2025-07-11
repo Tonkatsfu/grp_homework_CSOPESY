@@ -92,3 +92,23 @@ bool hasEnoughFreeMemory(int requiredMem)
     }
     return false;
 }
+
+std::vector<MemoryBlock> getAllocatedBlocks() {
+    std::vector<MemoryBlock> allocated;
+    for (const auto& block : memoryBlocks) {
+        if (!block.isFree) {
+            allocated.push_back(block);
+        }
+    }
+    return allocated;
+}
+
+int calculateExternalFragmentation() {
+    int fragmentation = 0;
+    for (const auto& block : memoryBlocks) {
+        if (block.isFree) {
+            fragmentation += block.size;
+        }
+    }
+    return fragmentation / 1024; // convert to KB
+}

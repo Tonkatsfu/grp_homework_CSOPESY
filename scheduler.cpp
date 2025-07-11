@@ -1,6 +1,7 @@
 #include "scheduler.h"
 #include "initialize.h"
 #include "menu_processor.h"
+#include "cpu_tick_global.h"
 #include "memory_manager.h"
 #include <iostream>
 #include <fstream>
@@ -23,52 +24,14 @@ std::condition_variable cv;
 bool initialized = false;
 std::atomic <bool> generateProcess = false;
 std::atomic<int> pidCounter = 0;
-std::atomic<int> globalQuantumCounter = 0;
-std::atomic<int> currentQuantumCycle = 0;
+std::atomic<int> globalQuantumCycleCounter = 0;
 
 std::unique_ptr<std::thread> dummyProcessThread;
 std::unique_ptr<std::thread> mainSchedulerThread;
 std::vector<std::thread> cpuCores;
 std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
-int processGenerationIntervalTicks = 5000;
 
-void dumpMemorySnapshot(int quantumCycle) {
-    std::ofstream out("memory_stamp_" + std::to_string(quantumCycle) + ".txt");
-
-    // Timestamp
-    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-    out << "Timestamp: " << std::put_time(std::localtime(&now), "%m/%d/%Y %I:%M:%S %p") << "\n";
-
-    std::lock_guard<std::mutex> lock(mtx);
-
-    // Number of processes in memory
-    int count = 0;
-    for (const auto& [name, process] : allProcesses) {
-        if (!process->finished) count++;
-    }
-    out << "Number of processes in memory: " << count << "\n";
-
-    size_t totalExternalFragmentation = 0;
-
-    out << "\nMemory Layout (ASCII Map):\n";
-
-    for (const auto& [name, process] : allProcesses) {
-        if (!process->finished) {
-            out << "+-------------------------+\n";
-            out << "| Process: " << name << "\n";
-            out << "| Lower Limit: " << process->lowerLimit << "\n";
-            out << "| Upper Limit: " << process->upperLimit << "\n";
-            out << "+-------------------------+\n";
-        } else {
-           
-        }
-    }
-
-    // Fake fragmentation calculation 
-    totalExternalFragmentation = 8192;
-    out << "\nExternal Fragmentation: " << totalExternalFragmentation / 1024 << " KB\n";
-}
 
 void cpuWorker(int coreID)
 {
@@ -148,12 +111,32 @@ void cpuWorker(int coreID)
 
                     p->currentInstruction++;
                     slice++;
-                    if (slice == quantumCycles && initialized) {
-                    int cycle = ++currentQuantumCycle;
-                    dumpMemorySnapshot(cycle);
-                    break;
-                    }
+                    globalQuantumCycleCounter++;
 
+std::string filename = "memory_stamp_" + std::to_string(globalQuantumCycleCounter.load()) + ".txt";
+std::ofstream snapshot(filename);
+
+if (snapshot.is_open()) {
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    snapshot << "Timestamp: " << std::put_time(std::localtime(&now), "%Y-%m-%d %H:%M:%S") << "\n";
+
+    std::vector<MemoryBlock> allocated = getAllocatedBlocks();
+    snapshot << "Number of processes in memory: " << allocated.size() << "\n";
+
+    int fragmentationKB = calculateExternalFragmentation();
+    snapshot << "Total external fragmentation: " << fragmentationKB << " KB\n\n";
+
+    snapshot << "Memory Layout:\n";
+
+    for (const auto& block : allocated) {
+        int upperLimit = block.startAddress + block.size - 1;
+        snapshot << "Upper limit: " << upperLimit << "\n";
+        snapshot << "Process ID: " << block.processId << "\n";
+        snapshot << "Lower limit: " << block.startAddress << "\n\n";
+    }
+
+    snapshot.close();
+}
 
                     if (p->sleepTicksRemaining > 0) {
                         std::lock_guard<std::mutex> lock(mtx);
@@ -175,6 +158,7 @@ void cpuWorker(int coreID)
                     readyQueue.push(p);
                 }
                 runningProcesses.erase(p->name);
+
             }
         }
             else {
@@ -233,7 +217,6 @@ void cpuWorker(int coreID)
     }
 }
 
-
 void startCpuWorkers()
 {
     for (int i = 0; i<numCPU; i++)
@@ -271,6 +254,14 @@ void startScheduler()
     if (!initialized)
     {
         initialized = true;
+
+        if (globalCpuTicker) {
+            globalCpuTicker->registerCallback([]() {
+                //handleSleepTicks();
+            });
+            globalCpuTicker->start();
+        }
+
         mainSchedulerThread = std::make_unique<std::thread>(runScheduler);
     }
 }
@@ -281,7 +272,7 @@ void stopScheduler()
     if (initialized)
     {
         initialized = false;
-        cv.notify_all();;
+        cv.notify_all();
         lock.unlock();
 
         if (mainSchedulerThread && mainSchedulerThread->joinable()) 
@@ -289,8 +280,13 @@ void stopScheduler()
             mainSchedulerThread->join(); 
             mainSchedulerThread.reset();
         }
+
+        if (globalCpuTicker) {
+            globalCpuTicker->stop();
+        }
     }
 }
+
 
 /*
 void addNewProcess(const std::string& processName)
@@ -468,59 +464,53 @@ void printSchedulerStatus(std::ostream& os)
     }
 }
 
-void dummyProcessGenerator() {
+void dummyProcessGenerator()
+{
     int ticks = 0;
     int counter = 0;
-
-    while (generateProcess.load()) {
-        if (delayPerExec == 0) {
+    while (generateProcess)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
+        if (delayPerExec == 0)
+        {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        } else {
-            std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
         }
-
-        ++ticks;
-        if (ticks >= batchProcessFreq) {
-            addNewProcess("p" + std::to_string(counter++));
+        ticks++;
+        if (ticks >= batchProcessFreq)
+        {
+            if (hasEnoughFreeMemory(memPerProc))
+            {
+                addNewProcess("p" + std::to_string(counter++));
+            }
             ticks = 0;
         }
     }
 }
 
-void startDummyProcesses() {
-    if (!generateProcess.load()) {
+void startDummyProcesses()
+{
+    if (!generateProcess.load())
+    {
         generateProcess.store(true);
         dummyProcessThread = std::make_unique<std::thread>(dummyProcessGenerator);
-        std::cout << "[dummy] Dummy process generator started.\n";
     }
 }
 
 void stopDummyProcesses() {
-    if (generateProcess.exchange(false)) {  
-        std::cout << "[dummy] Stopping dummy processes...\n";
-
-        if (dummyProcessThread) {
-            if (dummyProcessThread->joinable()) {
-                dummyProcessThread->join();
-            }
+    if (generateProcess.load()) {
+        generateProcess.store(false);
+        
+        if (dummyProcessThread && dummyProcessThread->joinable()) {
+            dummyProcessThread->join();
             dummyProcessThread.reset();
         }
 
         std::lock_guard<std::mutex> lock(mtx);
-        for (auto& [name, process] : allProcesses) {
-            if (process && process->logFile.is_open()) {
-                process->logFile.flush();
-                process->logFile.close();
+        for (auto& pair : allProcesses) {
+            if (pair.second->logFile.is_open()) {
+                pair.second->logFile.flush();
+                pair.second->logFile.close();
             }
         }
-
-        std::cout << "[dummy] All dummy processes cleaned up.\n";
     }
 }
-
-
-
-
-
-
-

@@ -51,6 +51,7 @@ struct Process
     int totalInstructions = 100;
     int currentInstruction = 0;
     int assignedCoreID = -1;
+    int memorySize = 0; //placeholder
     std:: time_t startTime;
     bool finished = false;
     std::vector<std::string> logs;
@@ -287,7 +288,7 @@ extern bool initialized;
 
 void startScheduler();
 void stopScheduler();
-void addNewProcess(const std::string& processName);
+void addNewProcess(const std::string& processName, int memorySize);
 void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();

@@ -3,6 +3,7 @@
 #include "menu_processor.h"
 #include "cpu_tick_global.h"
 #include "memory_manager.h"
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -15,7 +16,7 @@
 #include <iomanip>
 #include <map>
 #include <atomic>
-#include <random>
+#include <random> 
 
 std::queue<Process*> readyQueue;
 std::vector<Process*> finishedProcesses;
@@ -275,12 +276,26 @@ void addNewProcess(const std::string& processName)
 }
     */
 
-    
-void addNewProcess(const std::string& processName)
+void addNewProcess(const std::string& processName, int memorySize)
 {
     std::lock_guard<std::mutex> lock(mtx);
+
+    int pid = pidCounter++;
+
+    if (!allocateMemory(pid, memorySize)) {
+        std::cerr << "Failed to allocate memory for process " << processName << std::endl;
+        return;
+    }
+
     Process* p = new Process(processName);
-    p->pid = pidCounter++;
+    p->pid = pid;
+    p->memorySize = memorySize;
+
+    if (!allocateMemory(p->pid, memPerProc)) {
+            std::cout << "Not enough memory for process " << processName << "\n";
+            delete p;
+            return;
+    }
 
     // Set up random number generators
     std::random_device rd;
@@ -361,9 +376,6 @@ void addNewProcess(const std::string& processName)
     cv.notify_all(); 
 }
 
-
-
-
 void printSchedulerStatus(std::ostream& os)
 {
     // Clear the screen before printing status
@@ -437,6 +449,12 @@ void dummyProcessGenerator()
 {
     int ticks = 0;
     int counter = 0;
+
+    // generate random memory sizes
+    std::random_device rd;
+    std::mt19937 gen(rd());  
+    std::uniform_int_distribution<> memDist(64, 65536); //can tweak if wanna make more processes, etc.
+
     while (generateProcess)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
@@ -444,12 +462,20 @@ void dummyProcessGenerator()
         {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
+
         ticks++;
         if (ticks >= batchProcessFreq)
         {
+            if (!hasEnoughFreeMemory(64)) {
+                std::cout << "Memory full. Terminating process generator" << std::endl;
+                stopDummyProcesses();
+                break;
+            }
+
+            int memPerProc = memDist(gen);
             if (hasEnoughFreeMemory(memPerProc))
             {
-                addNewProcess("p" + std::to_string(counter++));
+                addNewProcess("p" + std::to_string(counter++), memPerProc);
             }
             ticks = 0;
         }

@@ -115,10 +115,13 @@ void printMemoryStatus(int qq) {
     }
 
     int procInMem = 0;
-    int totalFreeMem = 0;
-    int maxFreeMem = 0;
     int startMemUsage = 99999;
     int endMemUsage = 0;
+    int totalExtFrag = 0;
+    bool firstFreeFound = false;
+    int lastFreeEnd = -1;
+    int firstMemSize = 0; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+    int totalFreeMemBlocks = 0; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
 
     for (MemoryBlock mem : memoryBlocks) {
         if (!mem.isFree) {
@@ -126,18 +129,33 @@ void printMemoryStatus(int qq) {
             if (startMemUsage >= mem.startAddress) {
                 startMemUsage = mem.startAddress;
             }
-            if (endMemUsage < (mem.startAddress + mem.size - 1)) {
-                endMemUsage = mem.startAddress + mem.size - 1;
+            if (endMemUsage < (mem.startAddress + mem.size)) {
+                endMemUsage = mem.startAddress + mem.size;
             }
         } else {
-            totalFreeMem += mem.size;
-            if (mem.size > maxFreeMem) {
-                maxFreeMem = mem.size;
+            if (!firstFreeFound) {
+                // First free block, just track its end
+                lastFreeEnd = mem.startAddress + mem.size;
+                firstFreeFound = true;
+                totalExtFrag += mem.size;
+                firstMemSize += mem.size; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+                totalFreeMemBlocks++; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+            } else {
+                // Not contiguous with the previous free block
+                if (mem.startAddress != lastFreeEnd) {
+                    totalExtFrag += mem.size;
+                    totalFreeMemBlocks++; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+                } else {
+                    // Update the end of contiguous block
+                    lastFreeEnd = mem.startAddress + mem.size;
+                }
             }
         }
     }
 
-    int totalExtFrag = totalFreeMem - maxFreeMem;
+    if(totalFreeMemBlocks < 2){ //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+        totalExtFrag = totalExtFrag - firstMemSize;
+    }
 
     logFile << "Timestamp: " << buffer << "\n";
     logFile << "Number of processes in memory: " << procInMem << "\n";
@@ -146,7 +164,7 @@ void printMemoryStatus(int qq) {
 
     for (MemoryBlock mem : memoryBlocks) {
         if (!mem.isFree) {
-            logFile << mem.startAddress + mem.size - 1 << "\n";
+            logFile << mem.startAddress + mem.size << "\n";
             logFile << mem.processId << "\n";
             logFile << mem.startAddress << "\n\n";
         }

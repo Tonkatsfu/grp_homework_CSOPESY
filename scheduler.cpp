@@ -32,6 +32,9 @@ std::map<std::string, Process*> allProcesses;
 std::map<std::string, Process*> runningProcesses;
 int processGenerationIntervalTicks = 5000;
 
+std::atomic<int> globalSliceCounter = 0;
+std::mutex sliceLogMutex;
+
 
 void cpuWorker(int coreID)
 {
@@ -119,6 +122,12 @@ void cpuWorker(int coreID)
                         wasRequeued = true;
                         break;
                     }
+
+            }
+
+            if (coreID == 0) {  // Only core 0 is allowed to log otherwise other threads will also log the memory status
+                std::lock_guard<std::mutex> logLock(sliceLogMutex);
+                printMemoryStatus(globalSliceCounter++);
             }
 
             if (!wasRequeued) {

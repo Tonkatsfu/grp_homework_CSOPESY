@@ -4,6 +4,11 @@
 #include <fstream>
 #include <algorithm>
 
+#include <chrono>
+#include <ctime>
+#include <cstdlib>
+
+namespace fs = std::filesystem;
 std::vector<MemoryBlock> memoryBlocks;
 
 void initializeMemoryManager()
@@ -91,4 +96,62 @@ bool hasEnoughFreeMemory(int requiredMem)
         }
     }
     return false;
+}
+
+void printMemoryStatus(int qq) {
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
+
+    // Create the "memory_logs" directory using system call (Windows)
+    system("mkdir memory_logs >nul 2>&1");
+
+    std::string filePath = "memory_logs/memory_stamp_" + std::to_string(qq) + ".txt";
+    std::ofstream logFile(filePath, std::ios::app);
+
+    if (!logFile.is_open()) {
+        std::cerr << "Error: Could not open " << filePath << "\n";
+        return;
+    }
+
+    int procInMem = 0;
+    int totalFreeMem = 0;
+    int maxFreeMem = 0;
+    int startMemUsage = 99999;
+    int endMemUsage = 0;
+
+    for (MemoryBlock mem : memoryBlocks) {
+        if (!mem.isFree) {
+            procInMem++;
+            if (startMemUsage >= mem.startAddress) {
+                startMemUsage = mem.startAddress;
+            }
+            if (endMemUsage < (mem.startAddress + mem.size - 1)) {
+                endMemUsage = mem.startAddress + mem.size - 1;
+            }
+        } else {
+            totalFreeMem += mem.size;
+            if (mem.size > maxFreeMem) {
+                maxFreeMem = mem.size;
+            }
+        }
+    }
+
+    int totalExtFrag = totalFreeMem - maxFreeMem;
+
+    logFile << "Timestamp: " << buffer << "\n";
+    logFile << "Number of processes in memory: " << procInMem << "\n";
+    logFile << "Total External Fragmentation: " << totalExtFrag << "\n\n";
+    logFile << "----end---- = " << endMemUsage << "\n";
+
+    for (MemoryBlock mem : memoryBlocks) {
+        if (!mem.isFree) {
+            logFile << mem.startAddress + mem.size - 1 << "\n";
+            logFile << mem.processId << "\n";
+            logFile << mem.startAddress << "\n\n";
+        }
+    }
+
+    logFile << "----start---- = " << startMemUsage << "\n\n";
+    logFile.close();
 }

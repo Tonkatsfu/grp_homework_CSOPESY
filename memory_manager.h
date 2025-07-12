@@ -22,5 +22,6 @@ void initializeMemoryManager();
 bool allocateMemory(int processID, int memoryRequired);
 void deallocateMemory(int processID);
 bool hasEnoughFreeMemory(int requiredMem);
+void printMemoryStatus(int qq);
 
 #endif

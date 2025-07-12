@@ -165,7 +165,7 @@ void printMemoryStatus(int qq) {
     for (MemoryBlock mem : memoryBlocks) {
         if (!mem.isFree) {
             logFile << mem.startAddress + mem.size << "\n";
-            logFile << mem.processId << "\n";
+            logFile << "P" << mem.processId << "\n";
             logFile << mem.startAddress << "\n\n";
         }
     }

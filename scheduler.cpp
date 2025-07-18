@@ -39,7 +39,7 @@ std::mutex sliceLogMutex;
 
 void cpuWorker(int coreID)
 {
-    while(true)
+    while (true)
     {
         Process* p = nullptr;
         {
@@ -68,21 +68,23 @@ void cpuWorker(int coreID)
                     std::lock_guard<std::mutex> lock(mtx);
                     readyQueue.push(p);
                     runningProcesses.erase(p->name);
-                    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+                    // Simulate 10 ticks for failed memory allocation wait
+                    for (int t = 0; t < 10; ++t) cpuCycles++;
+
                     continue;
                 }
                 p->memoryAllocated = true;
             }
-            
+
             if (scheduler == "\"rr\"") {
                 int slice = 0;
                 bool wasRequeued = false;
 
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-                    }
+                    for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
+                        cpuCycles++;
+
                     const Instruction& instr = p->instructionList[p->currentInstruction];
 
                     if (p->sleepTicksRemaining > 0) {
@@ -95,7 +97,7 @@ void cpuWorker(int coreID)
                         break;
                     }
 
-                     switch (instr.opcode) {
+                    switch (instr.opcode) {
                         case OpCode::ADD:
                             p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
                             break;
@@ -123,40 +125,35 @@ void cpuWorker(int coreID)
                         wasRequeued = true;
                         break;
                     }
-
-            }
-
-            if (coreID == 0) {  // Only core 0 is allowed to log otherwise other threads will also log the memory status
-                std::lock_guard<std::mutex> logLock(sliceLogMutex);
-                printMemoryStatus(globalSliceCounter++);
-            }
-
-            if (!wasRequeued) {
-                std::lock_guard<std::mutex> lock(mtx);
-                if (p->currentInstruction >= p->totalInstructions) {
-                    p->finished = true;
-                    finishedProcesses.push_back(p);
-                    deallocateMemory(p->pid);
-                    p->memoryAllocated = false;
-                } else {
-                    readyQueue.push(p);
                 }
-                runningProcesses.erase(p->name);
-            }
-        }
-            else {
-                // FCFS
-                //std::cout << "scheduler is FCFS\n\n";
 
-                while (p->currentInstruction < p->totalInstructions) {
-                    std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0)
-                    {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
+                if (coreID == 0) {
+                    std::lock_guard<std::mutex> logLock(sliceLogMutex);
+                    printMemoryStatus(globalSliceCounter++);
+                }
+
+                if (!wasRequeued) {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    if (p->currentInstruction >= p->totalInstructions) {
+                        p->finished = true;
+                        finishedProcesses.push_back(p);
+                        deallocateMemory(p->pid);
+                        p->memoryAllocated = false;
+                    } else {
+                        readyQueue.push(p);
                     }
+                    runningProcesses.erase(p->name);
+                }
+
+            } else {
+                // FCFS
+                while (p->currentInstruction < p->totalInstructions) {
+                    for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
+                        cpuCycles++;
+
                     const Instruction& instr = p->instructionList[p->currentInstruction];
 
-                    if(p->sleepTicksRemaining > 0){
+                    if (p->sleepTicksRemaining > 0) {
                         p->sleepTicksRemaining--;
 
                         std::lock_guard<std::mutex> lock(mtx);
@@ -182,6 +179,7 @@ void cpuWorker(int coreID)
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
                             break;
                     }
+
                     p->currentInstruction++;
                 }
 
@@ -193,12 +191,11 @@ void cpuWorker(int coreID)
                     deallocateMemory(p->pid);
                     p->memoryAllocated = false;
                 }
-            
-
             }
         }
     }
 }
+
 
 void startCpuWorkers()
 {
@@ -287,15 +284,15 @@ void addNewProcess(const std::string& processName, int memorySize)
         return;
     }
 
-    Process* p = new Process(processName);
-    p->pid = pid;
-    p->memorySize = memorySize;
-
-    if (!allocateMemory(p->pid, memPerProc)) {
+    /*if (!allocateMemory(p->pid, memPerProc)) {
             std::cout << "Not enough memory for process " << processName << "\n";
             delete p;
             return;
-    }
+    }*/
+
+    Process* p = new Process(processName);
+    p->pid = pid;
+    p->memorySize = memorySize;
 
     // Set up random number generators
     std::random_device rd;
@@ -378,7 +375,6 @@ void addNewProcess(const std::string& processName, int memorySize)
 
 void printSchedulerStatus(std::ostream& os)
 {
-    // Clear the screen before printing status
 #ifdef _WIN32
     system("cls");
 #else
@@ -387,12 +383,12 @@ void printSchedulerStatus(std::ostream& os)
 
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
-
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
 
-    os << "CPU Utilization: " << cpuPercentage << "%\n" ;
+    os << "CPU Utilization: " << cpuPercentage << "%\n";
     os << "Cores used: " << runningCores << " \n";
     os << "Cores available: " << availCores << " \n";
+    os << "CPU Ticks Elapsed: " << cpuCycles << "\n";  // ADDED LINE
 
     std::lock_guard<std::mutex> lock(mtx);
     os << "\nRunning processes:\n";
@@ -402,9 +398,9 @@ void printSchedulerStatus(std::ostream& os)
         {
             auto p = pair.second;
             os << "  " << p->name
-                      << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                      << ")\tCore: " << p->assignedCoreID 
-                      << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
+                << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+                << ")\tCore: " << p->assignedCoreID
+                << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
         }
     }
     else
@@ -425,8 +421,8 @@ void printSchedulerStatus(std::ostream& os)
             Process* p = tmpQueue.front();
             tmpQueue.pop();
             os << "  " << p->name
-                      << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                      << ")\tWaiting\n";
+                << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+                << ")\tWaiting\n";
         }
     }
 
@@ -440,7 +436,7 @@ void printSchedulerStatus(std::ostream& os)
         for (auto p : finishedProcesses)
         {
             os << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                      << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
+                << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }
 }

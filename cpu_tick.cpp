@@ -1,26 +1,4 @@
-#include "cpu_tick.h"
-#include <chrono>
+#include "cpu_tick_global.h"
 
-void CpuTicker::start() {
-    running = true;
-    tickThread = std::thread([this]() {
-        while (running) {
-            tickCount++;
-            if (tickCallback) tickCallback();
-            std::this_thread::sleep_for(std::chrono::milliseconds(10)); // Simulated 1 tick
-        }
-    });
-}
-
-void CpuTicker::stop() {
-    running = false;
-    if (tickThread.joinable()) tickThread.join();
-}
-
-void CpuTicker::registerCallback(std::function<void()> callback) {
-    tickCallback = callback;
-}
-
-uint64_t CpuTicker::getTickCount() const {
-    return tickCount.load();
-}
+int cpuCycles = 0;
+bool terminateProgram = false; 

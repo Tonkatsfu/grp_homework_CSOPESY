@@ -1,7 +1,4 @@
-#ifndef CPU_TICK_GLOBAL_H
-#define CPU_TICK_GLOBAL_H
+#pragma once
 
-#include "cpu_tick.h"
-extern CpuTicker* globalCpuTicker;
-
-#endif
+extern int cpuCycles;
+extern bool terminateProgram;

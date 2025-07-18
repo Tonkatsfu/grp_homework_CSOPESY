@@ -1,9 +1,9 @@
+#include "cpu_tick_global.h"
 #include "menu_processor.h"
 #include <cstdlib>
 #include "scheduler.h"
 #include "initialize.h"
 
-bool terminateProgram = false;
 bool isInitialized = false;
 
 std::mutex logFileMutex;

@@ -375,20 +375,14 @@ void addNewProcess(const std::string& processName, int memorySize)
 
 void printSchedulerStatus(std::ostream& os)
 {
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
-
+    
     os << "CPU Utilization: " << cpuPercentage << "%\n";
     os << "Cores used: " << runningCores << " \n";
     os << "Cores available: " << availCores << " \n";
-    os << "CPU Ticks Elapsed: " << cpuCycles << "\n";  // ADDED LINE
+    os << "CPU Ticks Elapsed: " << cpuCycles << "\n"; 
 
     std::lock_guard<std::mutex> lock(mtx);
     os << "\nRunning processes:\n";
@@ -439,6 +433,8 @@ void printSchedulerStatus(std::ostream& os)
                 << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }
+    
+    std::cout << "-----------------------------------------------------------------------\n";
 }
 
 void dummyProcessGenerator()

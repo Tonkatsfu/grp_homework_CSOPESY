@@ -4,17 +4,19 @@
 #include <sstream>
 #include <algorithm>
 
-int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, 
-    maxOverallMem, memPerFrame, memPerProc;
+int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, maxOverallMem, memPerFrame, memPerProc;
 std::string scheduler;
 
 void initialize() {
     std::ifstream config("config.txt");
+    
     if (!config.is_open()) {
         std::cerr << "Failed to open config.txt\n";
         return;
     }
 
+    std::cout << std::endl; 
+    std::cout << "-----------------------------------------------------------------------\n";
     std::string key;
     while (config >> key) {
         if (key == "num-cpu") {
@@ -43,7 +45,7 @@ void initialize() {
         }
     }
 
-    std::cout << "Configuration Loaded:\n"
+    std::cout << "\033[34mConfiguration Loaded:\033[0m\n"
               << "  numCPU: " << numCPU << "\n"
               << "  scheduler: " << scheduler << "\n"
               << "  quantumCycles: " << quantumCycles << "\n"
@@ -53,5 +55,5 @@ void initialize() {
               << "  delayPerExec: " << delayPerExec << "\n"
               << "  maxOverallMem: " << maxOverallMem << "\n"
               << "  memPerFrame: " << memPerFrame << "\n"
-              << "  memPerProc: " << memPerProc << "\n\n";
+              << "  memPerProc: " << memPerProc << "\n";
 }

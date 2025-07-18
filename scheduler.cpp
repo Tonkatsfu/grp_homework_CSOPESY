@@ -61,7 +61,7 @@ void cpuWorker(int coreID)
 
         if (p)
         {
-            if (p && !p->memoryAllocated)
+            if (!p->memoryAllocated)
             {
                 if (!allocateMemory(p->pid, memPerProc))
                 {
@@ -85,9 +85,8 @@ void cpuWorker(int coreID)
                     for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
                         cpuCycles++;
 
-                    const Instruction& instr = p->instructionList[p->currentInstruction];
-
                     if (p->sleepTicksRemaining > 0) {
+                        cpuCycles++;  
                         p->sleepTicksRemaining--;
 
                         std::lock_guard<std::mutex> lock(mtx);
@@ -96,6 +95,8 @@ void cpuWorker(int coreID)
                         wasRequeued = true;
                         break;
                     }
+
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
 
                     switch (instr.opcode) {
                         case OpCode::ADD:
@@ -119,6 +120,9 @@ void cpuWorker(int coreID)
                     slice++;
 
                     if (p->sleepTicksRemaining > 0) {
+                        cpuCycles++;  
+                        p->sleepTicksRemaining--;
+
                         std::lock_guard<std::mutex> lock(mtx);
                         readyQueue.push(p);
                         runningProcesses.erase(p->name);
@@ -151,9 +155,8 @@ void cpuWorker(int coreID)
                     for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
                         cpuCycles++;
 
-                    const Instruction& instr = p->instructionList[p->currentInstruction];
-
                     if (p->sleepTicksRemaining > 0) {
+                        cpuCycles++;  
                         p->sleepTicksRemaining--;
 
                         std::lock_guard<std::mutex> lock(mtx);
@@ -161,6 +164,8 @@ void cpuWorker(int coreID)
                         runningProcesses.erase(p->name);
                         break;
                     }
+
+                    const Instruction& instr = p->instructionList[p->currentInstruction];
 
                     switch (instr.opcode) {
                         case OpCode::ADD:
@@ -284,15 +289,16 @@ void addNewProcess(const std::string& processName, int memorySize)
         return;
     }
 
+    Process* p = new Process(processName);
+    p->pid = pid;
+    p->memorySize = memorySize;
+
     /*if (!allocateMemory(p->pid, memPerProc)) {
             std::cout << "Not enough memory for process " << processName << "\n";
             delete p;
             return;
-    }*/
-
-    Process* p = new Process(processName);
-    p->pid = pid;
-    p->memorySize = memorySize;
+    }
+    */
 
     // Set up random number generators
     std::random_device rd;
@@ -375,14 +381,21 @@ void addNewProcess(const std::string& processName, int memorySize)
 
 void printSchedulerStatus(std::ostream& os)
 {
+    // Clear the screen before printing status
+#ifdef _WIN32
+    system("cls");
+#else
+    system("clear");
+#endif
+
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
+
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
-    
-    os << "CPU Utilization: " << cpuPercentage << "%\n";
+
+    os << "CPU Utilization: " << cpuPercentage << "%\n" ;
     os << "Cores used: " << runningCores << " \n";
     os << "Cores available: " << availCores << " \n";
-    os << "CPU Ticks Elapsed: " << cpuCycles << "\n"; 
 
     std::lock_guard<std::mutex> lock(mtx);
     os << "\nRunning processes:\n";
@@ -392,9 +405,9 @@ void printSchedulerStatus(std::ostream& os)
         {
             auto p = pair.second;
             os << "  " << p->name
-                << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                << ")\tCore: " << p->assignedCoreID
-                << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
+                      << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+                      << ")\tCore: " << p->assignedCoreID 
+                      << "\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
         }
     }
     else
@@ -415,8 +428,8 @@ void printSchedulerStatus(std::ostream& os)
             Process* p = tmpQueue.front();
             tmpQueue.pop();
             os << "  " << p->name
-                << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                << ")\tWaiting\n";
+                      << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
+                      << ")\tWaiting\n";
         }
     }
 
@@ -430,7 +443,7 @@ void printSchedulerStatus(std::ostream& os)
         for (auto p : finishedProcesses)
         {
             os << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
+                      << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }
 }

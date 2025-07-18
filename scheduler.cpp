@@ -433,8 +433,6 @@ void printSchedulerStatus(std::ostream& os)
                 << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }
-    
-    std::cout << "-----------------------------------------------------------------------\n";
 }
 
 void dummyProcessGenerator()

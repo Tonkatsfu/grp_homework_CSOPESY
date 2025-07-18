@@ -139,12 +139,14 @@ void processCommand(const std::string& command) {
 
         // Scheduler -start (Start the Scheduler)
         else if (command == "scheduler -start") {
+            std::cout << "Scheduler started!\n";
             startScheduler();
             startDummyProcesses();
         }
 
         // Scheduler -stop (Stop the Scheduler)
         else if (command == "scheduler -stop") {
+            std::cout << "Scheduler stopped!\n";
             stopDummyProcesses();
             stopScheduler();
         }

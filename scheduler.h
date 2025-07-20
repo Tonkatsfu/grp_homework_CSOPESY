@@ -201,7 +201,9 @@ struct Process
         uint16_t value2 = resolve(var2);
         uint16_t value3 = resolve(var3);
 
-        int32_t result = std::clamp(result, 0, static_cast<int32_t>(UINT16_MAX));
+        int32_t result = value2 - value3;
+        result = std::clamp(result, 0, static_cast<int32_t>(UINT16_MAX));
+
 
         variables[destVar] = result;
 

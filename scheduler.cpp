@@ -61,22 +61,6 @@ void cpuWorker(int coreID)
 
         if (p)
         {
-            if (!p->memoryAllocated)
-            {
-                if (!allocateMemory(p->pid, memPerProc))
-                {
-                    std::lock_guard<std::mutex> lock(mtx);
-                    readyQueue.push(p);
-                    runningProcesses.erase(p->name);
-
-                    // Simulate 10 ticks for failed memory allocation wait
-                    for (int t = 0; t < 10; ++t) cpuCycles++;
-
-                    continue;
-                }
-                p->memoryAllocated = true;
-            }
-
             if (scheduler == "\"rr\"") {
                 int slice = 0;
                 bool wasRequeued = false;
@@ -249,7 +233,7 @@ void stopScheduler()
     if (initialized)
     {
         initialized = false;
-        cv.notify_all();;
+        cv.notify_all();
         lock.unlock();
 
         if (mainSchedulerThread && mainSchedulerThread->joinable()) 
@@ -259,24 +243,6 @@ void stopScheduler()
         }
     }
 }
-
-/*
-void addNewProcess(const std::string& processName)
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    Process* p = new Process(processName);
-    p->pid = pidCounter++;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(minIns, maxIns);
-    p->totalInstructions = dist(gen);
-
-    readyQueue.push(p);
-    allProcesses[p->name] = p;
-    cv.notify_all(); 
-}
-    */
 
 void addNewProcess(const std::string& processName, int memorySize)
 {
@@ -292,6 +258,7 @@ void addNewProcess(const std::string& processName, int memorySize)
     Process* p = new Process(processName);
     p->pid = pid;
     p->memorySize = memorySize;
+    p->memoryAllocated = true;  // Add this!
 
     /*if (!allocateMemory(p->pid, memPerProc)) {
             std::cout << "Not enough memory for process " << processName << "\n";

@@ -37,8 +37,7 @@ std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
 
 
-void cpuWorker(int coreID)
-{
+void cpuWorker(int coreID) {
     while (true)
     {
         Process* p = nullptr;
@@ -186,16 +185,14 @@ void cpuWorker(int coreID)
 }
 
 
-void startCpuWorkers()
-{
+void startCpuWorkers() {
     for (int i = 0; i<numCPU; i++)
     {
         cpuCores.emplace_back(cpuWorker, i);
     }
 }
 
-void joinCpuWorkers()
-{
+void joinCpuWorkers() {
     for (std::thread& t : cpuCores) 
     {
         if (t.joinable()) 
@@ -206,8 +203,7 @@ void joinCpuWorkers()
     cpuCores.clear();
 }
 
-void runScheduler()
-{
+void runScheduler() {
     startCpuWorkers();
     {
         std::unique_lock<std::mutex> lock(mtx);
@@ -217,8 +213,7 @@ void runScheduler()
     joinCpuWorkers();
 }
 
-void startScheduler()
-{
+void startScheduler() {
     std::lock_guard<std::mutex> lock(mtx);
     if (!initialized)
     {
@@ -227,8 +222,7 @@ void startScheduler()
     }
 }
 
-void stopScheduler()
-{
+void stopScheduler() {
     std::unique_lock<std::mutex> lock(mtx);
     if (initialized)
     {
@@ -244,8 +238,7 @@ void stopScheduler()
     }
 }
 
-void addNewProcess(const std::string& processName, int memorySize)
-{
+void addNewProcess(const std::string& processName, int memorySize) {
     std::lock_guard<std::mutex> lock(mtx);
 
     int pid = pidCounter++;
@@ -346,8 +339,7 @@ void addNewProcess(const std::string& processName, int memorySize)
     cv.notify_all(); 
 }
 
-void printSchedulerStatus(std::ostream& os)
-{
+void printSchedulerStatus(std::ostream& os) {
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
 
@@ -408,8 +400,7 @@ void printSchedulerStatus(std::ostream& os)
     }
 }
 
-void dummyProcessGenerator()
-{
+void dummyProcessGenerator() {
     int ticks = 0;
     int counter = 0;
 
@@ -445,8 +436,7 @@ void dummyProcessGenerator()
     }
 }
 
-void startDummyProcesses()
-{
+void startDummyProcesses() {
     if (!generateProcess.load())
     {
         generateProcess.store(true);

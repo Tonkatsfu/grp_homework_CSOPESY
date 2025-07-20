@@ -228,7 +228,7 @@ struct Process
         strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
         std::ostringstream oss;
 
-        oss << "[" << buffer << "] Core " << coreID << ": Sleeping for " << ticks << "CPU ticks \n";
+        oss << "[" << buffer << "] Core " << coreID << ": Sleeping for " << ticks << " CPU ticks \n";
 
         logs.push_back(oss.str());
         logFile << oss.str();

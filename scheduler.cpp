@@ -348,13 +348,6 @@ void addNewProcess(const std::string& processName, int memorySize)
 
 void printSchedulerStatus(std::ostream& os)
 {
-    // Clear the screen before printing status
-#ifdef _WIN32
-    system("cls");
-#else
-    system("clear");
-#endif
-
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
 

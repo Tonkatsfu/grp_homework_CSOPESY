@@ -23,8 +23,9 @@ void printHeader() {
     std::cout << "Ian Gabriel De Jesus\n";
     std::cout << "Joemar Lapasaran\n";
     std::cout << "Neo Monserrat\n";
-    std::cout << "-------------------------------------------------------------------------------------------------\n";
+    std::cout << std::endl; 
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
 }
 
 void processCommand(const std::string& command) {
@@ -173,6 +174,7 @@ void processCommand(const std::string& command) {
 
                 printSchedulerStatus(logFile);
                 logFile.close();
+                std::cout << "-----------------------------------------------------------------------\n";
                 std::cout << "\033[34mSuccesfully generated report in file csopesy-log.txt\033[0m" << std::endl;
                 std::cout << "-----------------------------------------------------------------------\n";
             }

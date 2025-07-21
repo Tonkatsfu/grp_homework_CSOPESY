@@ -35,7 +35,18 @@ int processGenerationIntervalTicks = 5000;
 
 std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
+std::vector<std::queue<Process*>> cpuQueue; // NEW
 
+int getActiveCPUCount() {
+    std::lock_guard<std::mutex> lock(mtx);
+    int count = 0;
+    for (const auto& cpu : cpuQueue) {
+        if (!cpu.empty()) {
+            count++;
+        }
+    }
+    return count;
+}
 
 void cpuWorker(int coreID) {
     while (true)
@@ -345,7 +356,7 @@ void printSchedulerStatus(std::ostream& os) {
 
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
 
-    os << "CPU Utilization: " << cpuPercentage << "%\n" ;
+    os << "CPU Utilization: " << cpuPercentage << "%\n" ; 
     os << "Cores used: " << runningCores << " \n";
     os << "Cores available: " << availCores << " \n";
 
@@ -464,6 +475,85 @@ void stopDummyProcesses() {
         }
     }
 }
+
+void displayProcessSMI() {
+    std::cout << "\n------------------ Process SMI ------------------\n";
+
+    int totalMemKB = getTotalMemory();         // in KB
+    int usedMemKB = getTotalUsedMemory();      // in KB
+    int freeMemKB = getAvailableMemory();      // in KB
+    float memUtilPercent = (totalMemKB > 0) ? (usedMemKB * 100.0f / totalMemKB) : 0;
+
+    int activeCPUs = getActiveCPUCount();
+    float cpuUtilPercent = (numCPU > 0) ? (activeCPUs * 100.0f / numCPU) : 0.0f;
+
+    int totalPages = (totalMemKB * 1024) / memPerFrame;
+    int usedPages = (usedMemKB * 1024) / memPerFrame;
+
+    std::cout << std::fixed << std::setprecision(1) << std::left;
+    std::cout << std::setw(25) << "CPU Utilization:"     << cpuUtilPercent << " %\n"; // NEEDS FIX!!
+    std::cout << std::setw(25) << "Memory Usage:"        << usedMemKB / 1024 << " MiB / " << totalMemKB / 1024 << " MiB\n"; // NEEDS FIX!!
+    std::cout << std::setw(25) << "Memory Utilization:"  << memUtilPercent << " %\n"; // VERIFY!!
+    std::cout << std::setw(25) << "Pages Used:"          << usedPages << " / " << totalPages << "\n"; // VERIFY!!
+
+    std::cout << "\nRunning Processes:\n";
+    std::cout << "-----------------------------------------------\n";
+    std::cout << std::setw(20) << "Process" << "Memory Used (KB)\n";
+    std::cout << "-----------------------------------------------\n";
+
+    std::lock_guard<std::mutex> lock(mtx);
+    for (const auto& entry : allProcesses) {
+        Process* proc = entry.second;
+        if (proc && !proc->finished) {
+            std::cout << std::setw(20) << proc->name << proc->memorySize << "\n";
+        }
+    }
+
+    std::cout << "-----------------------------------------------\n";
+}
+
+void displayVMStat() {
+    std::cout << "\n------------------ VMSTAT ------------------\n";
+
+    std::lock_guard<std::mutex> lock(mtx);
+    int running = 0, sleeping = 0, stopped = 0, zombie = 0, totalProcesses = 0, usedPages = 0;
+
+    for (const auto& entry : allProcesses) {
+        Process* proc = entry.second;
+        if (proc && !proc->finished) {
+            totalProcesses++;
+            running++; 
+            usedPages += proc->memorySize / memPerFrame;
+        }
+    }
+
+    int totalMemory = getTotalMemory(); 
+    int usedMemory = getTotalUsedMemory();
+    int freeMemory = getAvailableMemory();
+
+    int totalPages = (totalMemory * 1024) / memPerFrame;
+    int freePages = totalPages - usedPages;
+
+    std::cout << "Processes:\n";
+    std::cout << "  " << running  << " running\n"; // VERIFY!!
+    std::cout << "  " << sleeping << " sleeping\n"; // VERIFY!!
+    std::cout << "  " << stopped  << " stopped\n"; // VERIFY!!
+    std::cout << "  " << zombie   << " zombie\n"; // CAN REMOVE
+
+    std::cout << "\nMemory (in KB):\n";
+    std::cout << "  " << totalMemory << " total memory\n"; // VERIFY!!
+    std::cout << "  " << usedMemory  << " used memory\n"; // VERIFY!!
+    std::cout << "  " << freeMemory  << " free memory\n"; // VERIFY!!
+
+    std::cout << "\nPages:\n";
+    std::cout << "  " << usedPages << " used pages\n"; // VERIFY!!
+    std::cout << "  " << freePages << " free pages\n"; // VERIFY!!
+    std::cout << "--------------------------------------------\n";
+}
+
+
+
+
 
 
 

@@ -175,3 +175,32 @@ void printMemoryStatus(int qq) {
     logFile << "----start---- = " << startMemUsage << "\n\n";
     logFile.close();
 }
+
+int getTotalMemory() {
+    int total = 0;
+    for (const auto& block : memoryBlocks) {
+        total += block.size;
+    }
+    return total / 1024; 
+}
+
+int getTotalUsedMemory() {
+    int used = 0;
+    for (const auto& block : memoryBlocks) {
+        if (!block.isFree) {
+            used += block.size;
+        }
+    }
+    return used / 1024; 
+}
+
+int getAvailableMemory() {
+    int freeMem = 0;
+    for (const auto& block : memoryBlocks) {
+        if (block.isFree) {
+            freeMem += block.size;
+        }
+    }
+    return freeMem / 1024; 
+}
+

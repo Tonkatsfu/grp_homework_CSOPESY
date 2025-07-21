@@ -295,5 +295,7 @@ void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();
 void stopDummyProcesses();
+void displayProcessSMI();
+void displayVMStat();
 
 #endif

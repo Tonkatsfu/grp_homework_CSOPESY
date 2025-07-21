@@ -24,4 +24,8 @@ void deallocateMemory(int processID);
 bool hasEnoughFreeMemory(int requiredMem);
 void printMemoryStatus(int qq);
 
+int getTotalMemory();         
+int getTotalUsedMemory();     
+int getAvailableMemory();     
+
 #endif

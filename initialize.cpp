@@ -3,13 +3,19 @@
 #include <fstream>
 #include <sstream>
 #include <algorithm>
+#include <cmath>
 
-int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, maxOverallMem, memPerFrame, memPerProc;
+int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec;
+int maxOverallMem, memPerFrame, memPerProc, minMemPerProc, maxMemPerProc;
 std::string scheduler;
+
+bool isValidMemorySize(int mem) {
+    return mem >= 64 && mem <= 65536 && (mem & (mem - 1)) == 0;
+}
 
 void initialize() {
     std::ifstream config("config.txt");
-    
+
     if (!config.is_open()) {
         std::cerr << "Failed to open config.txt\n";
         return;
@@ -17,6 +23,7 @@ void initialize() {
 
     std::cout << std::endl; 
     std::cout << "-----------------------------------------------------------------------\n";
+    
     std::string key;
     while (config >> key) {
         if (key == "num-cpu") {
@@ -39,10 +46,25 @@ void initialize() {
             config >> memPerFrame;
         } else if (key == "mem-per-proc") {
             config >> memPerProc;
+        } else if (key == "min-mem-per-proc") {
+            config >> minMemPerProc;
+        } else if (key == "max-mem-per-proc") {
+            config >> maxMemPerProc;
         } else {
             std::string skip;
-            std::getline(config, skip);
+            std::getline(config, skip); 
         }
+    }
+
+    // Validate memory sizes
+    if (!isValidMemorySize(maxOverallMem) ||
+        !isValidMemorySize(memPerFrame) ||
+        !isValidMemorySize(memPerProc) ||
+        !isValidMemorySize(minMemPerProc) ||
+        !isValidMemorySize(maxMemPerProc)) 
+    {
+        std::cerr << "\n\033[31mError: One or more memory parameters are not a power of 2 or out of valid range (64–65536 bytes).\033[0m\n";
+        std::exit(EXIT_FAILURE);
     }
 
     std::cout << "\033[34mConfiguration Loaded:\033[0m\n"
@@ -55,5 +77,7 @@ void initialize() {
               << "  delayPerExec: " << delayPerExec << "\n"
               << "  maxOverallMem: " << maxOverallMem << "\n"
               << "  memPerFrame: " << memPerFrame << "\n"
-              << "  memPerProc: " << memPerProc << "\n";
+              << "  memPerProc: " << memPerProc << "\n"
+              << "  minMemPerProc: " << minMemPerProc << "\n"
+              << "  maxMemPerProc: " << maxMemPerProc << "\n";
 }

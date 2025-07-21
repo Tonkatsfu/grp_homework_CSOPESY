@@ -184,6 +184,17 @@ void processCommand(const std::string& command) {
                 std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
             }
         }
+
+        // Process-smi
+        else if (command == "process-smi") {
+            displayProcessSMI();
+        }
+
+        // Vmstat
+        else if (command == "vmstat") {
+            displayVMStat();
+        }
+
         
         else {
             std::cout <<"Please enter a valid command." << std::endl;

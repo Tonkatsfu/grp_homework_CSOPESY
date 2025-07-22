@@ -19,10 +19,7 @@ void initialize() {
     if (!config.is_open()) {
         std::cerr << "Failed to open config.txt\n";
         return;
-    }
-
-    std::cout << std::endl; 
-    std::cout << "-----------------------------------------------------------------------\n";
+    } 
     
     std::string key;
     while (config >> key) {
@@ -67,8 +64,11 @@ void initialize() {
         std::exit(EXIT_FAILURE);
     }
 
-    std::cout << "\033[34mConfiguration Loaded:\033[0m\n"
-              << "  numCPU: " << numCPU << "\n"
+    std::cout << "\nConfiguration Loaded!\n";
+    std::cout << "-----------------------------------------------\n";
+    std::cout << "\033[34mConfiguration:\033[0m\n";
+    std::cout << std::endl;
+    std::cout << "  numCPU: " << numCPU << "\n"
               << "  scheduler: " << scheduler << "\n"
               << "  quantumCycles: " << quantumCycles << "\n"
               << "  batchProcessFreq: " << batchProcessFreq << "\n"

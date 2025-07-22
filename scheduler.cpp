@@ -39,8 +39,6 @@ std::vector<std::queue<Process*>> cpuQueue;
 
 std::atomic<long long> cpuIdleTicks{0}; 
 std::atomic<long long> cpuActiveTicks{0}; 
-std::atomic<int> pagedInCount{0}; 
-std::atomic<int> pagedOutCount{0};
 
 int getActiveCPUCount() {
     std::lock_guard<std::mutex> lock(mtx);
@@ -357,7 +355,7 @@ void addNewProcess(const std::string& processName, int memorySize) {
     cv.notify_all(); 
 }
 
-void addNewProcessWithInstructions(const std::string& name, int memory, const std::vector<std::string>& instructions) {
+void addNewProcessWithInstructions(const std::string& name, int memory, const std::vector<std::string>& instructions) { // TODO: Implement process creation with Instructions
     std::cout << std::endl; 
     std::cout << "-----------------------------------------------\n";
     std::cout << "NOT YET IMPLEMENTED!" << std::endl;
@@ -367,8 +365,11 @@ void addNewProcessWithInstructions(const std::string& name, int memory, const st
 void printSchedulerStatus(std::ostream& os) {
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
-
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
+    
+    std::cout << "\n-----------------------------------------------\n";
+    std::cout << "\033[34mScheduler Statistics\033[0m\n";
+    std::cout << std::endl;
 
     os << "CPU Utilization: " << cpuPercentage << "%\n" ; 
     os << "Cores used: " << runningCores << " \n";
@@ -423,16 +424,18 @@ void printSchedulerStatus(std::ostream& os) {
                       << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
         }
     }
+
+    std::cout << "-----------------------------------------------\n";
 }
 
-void dummyProcessGenerator() {
+void dummyProcessGenerator() { // TODO: Should stop making dummy processes when memory is full
     int ticks = 0;
     int counter = 0;
 
     // generate random memory sizes
     std::random_device rd;
     std::mt19937 gen(rd());  
-    std::uniform_int_distribution<> memDist(64, 65536); //can tweak if wanna make more processes, etc.
+    std::uniform_int_distribution<> memDist(64, 65536); // Can tweak if wanna make more processes, etc.
 
     while (generateProcess)
     {
@@ -454,7 +457,11 @@ void dummyProcessGenerator() {
             int memPerProc = memDist(gen);
             if (hasEnoughFreeMemory(memPerProc))
             {
-                addNewProcess("p" + std::to_string(counter++), memPerProc);
+                std::string processName = "p" + std::to_string(counter++);
+                //std::cout << "[Generator] Creating process " << processName   // PRINTS LOGS OF CREATED DUMMY PROCESSES (Uncomment to see)
+                //<< " with " << memPerProc << " bytes of memory.\n";
+
+                addNewProcess(processName, memPerProc);
             }
             ticks = 0;
         }
@@ -491,7 +498,9 @@ void stopDummyProcesses() {
 }
 
 void displayProcessSMI() {
-    std::cout << "\n------------------ Process SMI ------------------\n";
+    std::cout << "\n-----------------------------------------------";
+    std::cout << "\033[34m\nProcess SMI\n\033[0m";
+    std::cout << std::endl;
 
     int totalMemBytes = getTotalMemory();         
     int usedMemBytes = getTotalUsedMemory();     
@@ -504,7 +513,7 @@ void displayProcessSMI() {
 
     std::cout << std::fixed << std::setprecision(1) << std::left;
     std::cout << std::setw(25) << "CPU Utilization:"     << cpuPercentage << " %\n"; // VERIFY!! VALUE EXCEEDING 100%
-    std::cout << std::setw(25) << "Memory Usage:"        << usedMemBytes << " Bytes / " << totalMemBytes << " Bytes\n"; // VERIFY!!
+    std::cout << std::setw(25) << "Memory Usage:"        << usedMemBytes << " Bytes / " << totalMemBytes << " Bytes\n"; // VERIFY!! 
     std::cout << std::setw(25) << "Memory Utilization:"  << memUtilPercent << " %\n"; // VERIFY!!
 
     std::cout << "\nRunning Processes:\n";
@@ -524,7 +533,9 @@ void displayProcessSMI() {
 }
 
 void displayVMStat() {
-    std::cout << "\n------------------ VMSTAT ------------------\n";
+    std::cout << "\n-----------------------------------------------";
+    std::cout << "\033[34m\nVirtual Machine Statistics\n\033[0m";
+    std::cout << std::endl;
 
     std::lock_guard<std::mutex> lock(mtx);
 
@@ -540,14 +551,11 @@ void displayVMStat() {
     int usedMemory  = getTotalUsedMemory(); 
     int freeMemory  = getAvailableMemory(); 
 
-    int totalPages = (totalMemory * 1024) / memPerFrame; // NEEDS FIX!
-    int freePages  = totalPages - usedPages; // NEEDS FIX!
-
     long long idleTicks   = cpuIdleTicks.load();
     long long activeTicks = cpuActiveTicks.load();
     long long totalTicks  = idleTicks + activeTicks;
 
-    std::cout << "Memory (in KB):\n";
+    std::cout << "Memory:\n";
     std::cout << "  " << totalMemory << " bytes" << " total memory\n";
     std::cout << "  " << usedMemory  << " bytes" << " used memory\n";
     std::cout << "  " << freeMemory  << " bytes" << " free memory\n";
@@ -558,10 +566,10 @@ void displayVMStat() {
     std::cout << "  " << totalTicks  << " total cpu ticks\n";
 
     std::cout << "\nPaging:\n";
-    std::cout << "  " << pagedInCount.load()  << " num paged in\n"; // NO VALUES BEING PLACED YET
-    std::cout << "  " << pagedOutCount.load() << " num paged out\n"; // NO VALUES BEING PLACED YET
+    std::cout << "  " << "0" << " paged in\n"; // NO VALUES BEING PLACED YET
+    std::cout << "  " << "0" << " paged out\n"; // NO VALUES BEING PLACED YET
 
-    std::cout << "--------------------------------------------\n";
+    std::cout << "-----------------------------------------------\n";
 }
 
 

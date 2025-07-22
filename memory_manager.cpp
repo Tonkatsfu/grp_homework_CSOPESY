@@ -18,7 +18,7 @@ void initializeMemoryManager()
     std::cout << std::endl; 
     std::cout << "Memory Manager initialized with " 
               << memoryBlocks.size() << " block(s).\n"
-              << "-----------------------------------------------------------------------\n";
+              << "-----------------------------------------------\n";
 }
 
 // First-Fit

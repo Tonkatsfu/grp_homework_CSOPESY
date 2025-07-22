@@ -32,9 +32,6 @@ void processCommand(const std::string& command) {
     if(isInitialized) {
         // Screen -ls (Print the Scheduler Status)
         if (command == "screen -ls") {
-            std::cout << std::endl; 
-            std::cout << "-----------------------------------------------------------------------\n";
-            std::cout << "\033[34mScheduler Statistics\033[0m\n";
             printSchedulerStatus(std::cout);
         }
         

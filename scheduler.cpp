@@ -264,6 +264,8 @@ void stopScheduler() {
 }
 
 void addNewProcess(const std::string& processName, int memorySize) {
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] New Process Created!\033[0m\n";
     std::lock_guard<std::mutex> lock(mtx);
 
     int pid = pidCounter++;
@@ -363,6 +365,8 @@ void addNewProcess(const std::string& processName, int memorySize) {
 }
 
 void addNewProcessWithInstructions(const std::string& name, int memory, const std::vector<std::string>& instructions) { // TODO: Implement process creation with Instructions
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] New Process Created!\033[0m\n";
     std::cout << std::endl; 
     std::cout << "-----------------------------------------------\n";
     std::cout << "NOT YET IMPLEMENTED!" << std::endl;

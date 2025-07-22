@@ -26,19 +26,19 @@ bool allocateMemory(int processID, int memoryRequired)
 {
     for (auto it = memoryBlocks.begin(); it != memoryBlocks.end(); ++it)
     {
-        if (it->isFree && it-> size >= memoryRequired)
+        if (it->isFree && it->size >= memoryRequired)
         {
-            int originalSize = it->size;
+            int originalSize  = it->size;
             int originalStart = it->startAddress;
 
-            it->isFree = false;
-            it->processId = processID;
-            it->size = memoryRequired;
+            it->isFree     = false;
+            it->processId  = processID;
+            it->size       = memoryRequired;
 
             if (originalSize > memoryRequired)
             {
                 memoryBlocks.emplace_back(originalStart + memoryRequired, 
-                                        originalSize - memoryRequired, true);
+                                          originalSize - memoryRequired, true);
             }
 
             std::sort(memoryBlocks.begin(), memoryBlocks.end(), 
@@ -57,7 +57,7 @@ void deallocateMemory(int processID)
     {
         if (!block.isFree && block.processId == processID)
         {
-            block.isFree = true;
+            block.isFree    = true;
             block.processId = 0;
 
             std::vector<MemoryBlock> newMemoryState;
@@ -65,13 +65,13 @@ void deallocateMemory(int processID)
                       [](const MemoryBlock& a, const MemoryBlock& b) {
                           return a.startAddress < b.startAddress;
                       });
-            
+
             if (!memoryBlocks.empty())
             {
                 newMemoryState.push_back(memoryBlocks[0]);
                 for (size_t i = 1; i < memoryBlocks.size(); ++i)
                 {
-                    MemoryBlock& last = newMemoryState.back();
+                    MemoryBlock& last    = newMemoryState.back();
                     MemoryBlock& current = memoryBlocks[i];
 
                     if (last.isFree && current.isFree)
@@ -84,6 +84,7 @@ void deallocateMemory(int processID)
                     }
                 }
             }
+
             memoryBlocks = newMemoryState;
             return;
         }
@@ -116,14 +117,14 @@ void printMemoryStatus(int qq) {
         return;
     }
 
-    int procInMem = 0;
-    int startMemUsage = 99999;
-    int endMemUsage = 0;
-    int totalExtFrag = 0;
-    bool firstFreeFound = false;
-    int lastFreeEnd = -1;
-    int firstMemSize = 0; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
-    int totalFreeMemBlocks = 0; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+    int  procInMem          = 0;
+    int  startMemUsage      = 99999;
+    int  endMemUsage        = 0;
+    int  totalExtFrag       = 0;
+    bool firstFreeFound     = false;
+    int  lastFreeEnd        = -1;
+    int  firstMemSize       = 0;  //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+    int  totalFreeMemBlocks = 0;  //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
 
     for (MemoryBlock mem : memoryBlocks) {
         if (!mem.isFree) {
@@ -137,16 +138,16 @@ void printMemoryStatus(int qq) {
         } else {
             if (!firstFreeFound) {
                 // First free block, just track its end
-                lastFreeEnd = mem.startAddress + mem.size;
-                firstFreeFound = true;
-                totalExtFrag += mem.size;
-                firstMemSize += mem.size; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
-                totalFreeMemBlocks++; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+                lastFreeEnd     = mem.startAddress + mem.size;
+                firstFreeFound  = true;
+                totalExtFrag   += mem.size;
+                firstMemSize   += mem.size;      //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+                totalFreeMemBlocks++;            //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
             } else {
                 // Not contiguous with the previous free block
                 if (mem.startAddress != lastFreeEnd) {
                     totalExtFrag += mem.size;
-                    totalFreeMemBlocks++; //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+                    totalFreeMemBlocks++;        //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
                 } else {
                     // Update the end of contiguous block
                     lastFreeEnd = mem.startAddress + mem.size;
@@ -155,7 +156,7 @@ void printMemoryStatus(int qq) {
         }
     }
 
-    if(totalFreeMemBlocks < 2){ //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
+    if (totalFreeMemBlocks < 2) {                //REMOVE THIS IF WHAT I SAID IN GC IS INCORRECT
         totalExtFrag = totalExtFrag - firstMemSize;
     }
 
@@ -176,7 +177,7 @@ void printMemoryStatus(int qq) {
     logFile.close();
 }
 
-int getTotalMemory() {
+int getTotalMemory() { // VERIFY!!
     int total = 0;
     for (const auto& block : memoryBlocks) {
         total += block.size;
@@ -184,7 +185,7 @@ int getTotalMemory() {
     return total;  
 }
 
-int getTotalUsedMemory() {
+int getTotalUsedMemory() { // VERIFY!!
     int used = 0;
     for (const auto& block : memoryBlocks) {
         if (!block.isFree) {
@@ -194,7 +195,7 @@ int getTotalUsedMemory() {
     return used;  
 }
 
-int getAvailableMemory() {
+int getAvailableMemory() { // VERIFY!!
     int freeMem = 0;
     for (const auto& block : memoryBlocks) {
         if (block.isFree) {
@@ -203,5 +204,3 @@ int getAvailableMemory() {
     }
     return freeMem;  
 }
-
-

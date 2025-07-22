@@ -124,6 +124,56 @@ void processCommand(const std::string& command) {
             }
         }
 
+        // Screen -c (Create Screen with Instructions)
+        else if (command.rfind("screen -c ", 0) == 0) {
+            std::istringstream iss(command);
+            std::string cmd, flag, processName, memoryStr, instructionString;
+
+            iss >> cmd >> flag >> processName >> memoryStr;
+            std::getline(iss, instructionString);
+
+            // Clean instruction string (remove leading/trailing quotes/spaces)
+            instructionString.erase(0, instructionString.find_first_not_of(" \""));
+            instructionString.erase(instructionString.find_last_not_of("\" ") + 1);
+
+            if (processName.empty() || memoryStr.empty() || instructionString.empty()) {
+                std::cout << "Invalid command. Usage: screen -c <name> <memory> \"<instructions>\"\n";
+                return;
+            }
+            
+            int memorySize;
+            try {
+                memorySize = std::stoi(memoryStr);
+            } catch (...) {
+                std::cout << "Invalid memory size. Usage: screen -c <name> <memory> \"<instructions>\"\n";
+                return;
+            }
+
+            // Validate instruction count
+            std::vector<std::string> instructions;
+            std::stringstream ss(instructionString);
+            std::string token;
+            while (std::getline(ss, token, ';')) {
+                std::string trimmed = token;
+                trimmed.erase(0, trimmed.find_first_not_of(" \t\r\n"));
+                trimmed.erase(trimmed.find_last_not_of(" \t\r\n") + 1);
+                if (!trimmed.empty()) instructions.push_back(trimmed);
+            }
+
+            if (instructions.size() < 1 || instructions.size() > 50) {
+                std::cout << "Invalid command. Instruction count must be between 1 and 50.\n";
+                return;
+            }
+
+            if (allProcesses[processName] != nullptr && !allProcesses[processName]->finished) {
+                std::cout << "Screen " << processName << " already exists. Use screen -r <process name>.\n";
+            } else {
+                currentScreenName = processName;
+                addNewProcessWithInstructions(processName, memorySize, instructions);
+                //ScreenConsoles(*allProcesses[processName]);
+            }
+        }
+
         // Screen -r (View Screen)
         else if (command.rfind("screen -r ", 0) == 0) {
             std:: string screenName = command.substr(10);

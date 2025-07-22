@@ -291,6 +291,7 @@ extern bool initialized;
 void startScheduler();
 void stopScheduler();
 void addNewProcess(const std::string& processName, int memorySize);
+void addNewProcessWithInstructions(const std::string& name, int memory, const std::vector<std::string>& instructions);
 void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();

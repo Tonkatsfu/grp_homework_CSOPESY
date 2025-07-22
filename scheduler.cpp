@@ -35,12 +35,12 @@ int processGenerationIntervalTicks = 5000;
 
 std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
-std::vector<std::queue<Process*>> cpuQueue; // NEW
+std::vector<std::queue<Process*>> cpuQueue; 
 
-std::atomic<long long> cpuIdleTicks{0}; // NEW
-std::atomic<long long> cpuActiveTicks{0}; // NEW
-std::atomic<int> pagedInCount{0}; // NEW
-std::atomic<int> pagedOutCount{0}; // NEW
+std::atomic<long long> cpuIdleTicks{0}; 
+std::atomic<long long> cpuActiveTicks{0}; 
+std::atomic<int> pagedInCount{0}; 
+std::atomic<int> pagedOutCount{0};
 
 int getActiveCPUCount() {
     std::lock_guard<std::mutex> lock(mtx);
@@ -271,7 +271,7 @@ void addNewProcess(const std::string& processName, int memorySize) {
     Process* p = new Process(processName);
     p->pid = pid;
     p->memorySize = memorySize;
-    p->memoryAllocated = true;  // Add this!
+    p->memoryAllocated = true;
 
     /*if (!allocateMemory(p->pid, memPerProc)) {
             std::cout << "Not enough memory for process " << processName << "\n";
@@ -318,15 +318,13 @@ void addNewProcess(const std::string& processName, int memorySize) {
                 i++;
                 break;
             case OpCode::FOR: {
-                // Random number of iterations (2-5)
                 int loopCount = loopCountDist(gen);
                 
-                // Create random instructions for loop body (1-3 instructions)
                 int loopBodySize = loopBodySizeDist(gen);
                 std::vector<Instruction> loopBody;
                 
                 for (int j = 0; j < loopBodySize; j++) {
-                    OpCode bodyOpcode = opcodes[opcodeDist(gen) % 4]; // Exclude FOR from body for simplicity
+                    OpCode bodyOpcode = opcodes[opcodeDist(gen) % 4]; 
                     switch (bodyOpcode) {
                         case OpCode::ADD:
                             loopBody.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
@@ -346,7 +344,7 @@ void addNewProcess(const std::string& processName, int memorySize) {
                 }
                 
                 p->instructionList.push_back(Instruction(OpCode::FOR, {loopCount}, loopBody));
-                i++; // Only count the FOR instruction itself, not the body
+                i++; 
                 break;
             }
         }
@@ -357,6 +355,13 @@ void addNewProcess(const std::string& processName, int memorySize) {
     readyQueue.push(p);
     allProcesses[p->name] = p;
     cv.notify_all(); 
+}
+
+void addNewProcessWithInstructions(const std::string& name, int memory, const std::vector<std::string>& instructions) {
+    std::cout << std::endl; 
+    std::cout << "-----------------------------------------------\n";
+    std::cout << "NOT YET IMPLEMENTED!" << std::endl;
+    std::cout << "-----------------------------------------------\n";
 }
 
 void printSchedulerStatus(std::ostream& os) {
@@ -488,26 +493,23 @@ void stopDummyProcesses() {
 void displayProcessSMI() {
     std::cout << "\n------------------ Process SMI ------------------\n";
 
-    int totalMemKB = getTotalMemory();         // in KB
-    int usedMemKB = getTotalUsedMemory();      // in KB
-    int freeMemKB = getAvailableMemory();      // in KB
-    float memUtilPercent = (totalMemKB > 0) ? (usedMemKB * 100.0f / totalMemKB) : 0;
+    int totalMemBytes = getTotalMemory();         
+    int usedMemBytes = getTotalUsedMemory();     
+    int freeMemBytes = getAvailableMemory(); 
 
-    int activeCPUs = getActiveCPUCount();
-    float cpuUtilPercent = (numCPU > 0) ? (activeCPUs * 100.0f / numCPU) : 0.0f;
-
-    int totalPages = (totalMemKB * 1024) / memPerFrame;
-    int usedPages = (usedMemKB * 1024) / memPerFrame;
+    int runningCores = runningProcesses.size();
+    int availCores = numCPU - runningCores;
+    double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
+    float memUtilPercent = (totalMemBytes > 0) ? (usedMemBytes * 100.0f / totalMemBytes) : 0;
 
     std::cout << std::fixed << std::setprecision(1) << std::left;
-    std::cout << std::setw(25) << "CPU Utilization:"     << cpuUtilPercent << " %\n"; // NEEDS FIX!!
-    std::cout << std::setw(25) << "Memory Usage:"        << usedMemKB / 1024 << " MiB / " << totalMemKB / 1024 << " MiB\n"; // NEEDS FIX!!
+    std::cout << std::setw(25) << "CPU Utilization:"     << cpuPercentage << " %\n"; // VERIFY!! VALUE EXCEEDING 100%
+    std::cout << std::setw(25) << "Memory Usage:"        << usedMemBytes << " Bytes / " << totalMemBytes << " Bytes\n"; // VERIFY!!
     std::cout << std::setw(25) << "Memory Utilization:"  << memUtilPercent << " %\n"; // VERIFY!!
-    std::cout << std::setw(25) << "Pages Used:"          << usedPages << " / " << totalPages << "\n"; // VERIFY!!
 
     std::cout << "\nRunning Processes:\n";
     std::cout << "-----------------------------------------------\n";
-    std::cout << std::setw(20) << "Process" << "Memory Used (KB)\n";
+    std::cout << std::setw(20) << "Process" << "Memory Used (Bytes)\n";
     std::cout << "-----------------------------------------------\n";
 
     std::lock_guard<std::mutex> lock(mtx);
@@ -534,12 +536,12 @@ void displayVMStat() {
         }
     }
 
-    int totalMemory = getTotalMemory();     // in KB
-    int usedMemory  = getTotalUsedMemory(); // in KB
-    int freeMemory  = getAvailableMemory(); // in KB
+    int totalMemory = getTotalMemory();     
+    int usedMemory  = getTotalUsedMemory(); 
+    int freeMemory  = getAvailableMemory(); 
 
-    int totalPages = (totalMemory * 1024) / memPerFrame;
-    int freePages  = totalPages - usedPages;
+    int totalPages = (totalMemory * 1024) / memPerFrame; // NEEDS FIX!
+    int freePages  = totalPages - usedPages; // NEEDS FIX!
 
     long long idleTicks   = cpuIdleTicks.load();
     long long activeTicks = cpuActiveTicks.load();

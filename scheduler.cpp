@@ -37,6 +37,11 @@ std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
 std::vector<std::queue<Process*>> cpuQueue; // NEW
 
+std::atomic<long long> cpuIdleTicks{0}; // NEW
+std::atomic<long long> cpuActiveTicks{0}; // NEW
+std::atomic<int> pagedInCount{0}; // NEW
+std::atomic<int> pagedOutCount{0}; // NEW
+
 int getActiveCPUCount() {
     std::lock_guard<std::mutex> lock(mtx);
     int count = 0;
@@ -55,6 +60,7 @@ void cpuWorker(int coreID) {
         {
             std::unique_lock<std::mutex> lock(mtx);
             cv.wait(lock, [] { return !readyQueue.empty() || !initialized; });
+            cpuIdleTicks++;
 
             if (!initialized && readyQueue.empty()) {
                 return;
@@ -78,6 +84,7 @@ void cpuWorker(int coreID) {
                 while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
                     for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
                         cpuCycles++;
+                        cpuActiveTicks++; 
 
                     if (p->sleepTicksRemaining > 0) {
                         cpuCycles++;  
@@ -148,6 +155,8 @@ void cpuWorker(int coreID) {
                 while (p->currentInstruction < p->totalInstructions) {
                     for (int tick = 0; tick < (delayPerExec > 0 ? delayPerExec : 1); ++tick)
                         cpuCycles++;
+                        cpuActiveTicks++;
+                        
 
                     if (p->sleepTicksRemaining > 0) {
                         cpuCycles++;  
@@ -516,38 +525,40 @@ void displayVMStat() {
     std::cout << "\n------------------ VMSTAT ------------------\n";
 
     std::lock_guard<std::mutex> lock(mtx);
-    int running = 0, sleeping = 0, stopped = 0, zombie = 0, totalProcesses = 0, usedPages = 0;
 
+    int usedPages = 0;
     for (const auto& entry : allProcesses) {
         Process* proc = entry.second;
         if (proc && !proc->finished) {
-            totalProcesses++;
-            running++; 
             usedPages += proc->memorySize / memPerFrame;
         }
     }
 
-    int totalMemory = getTotalMemory(); 
-    int usedMemory = getTotalUsedMemory();
-    int freeMemory = getAvailableMemory();
+    int totalMemory = getTotalMemory();     // in KB
+    int usedMemory  = getTotalUsedMemory(); // in KB
+    int freeMemory  = getAvailableMemory(); // in KB
 
     int totalPages = (totalMemory * 1024) / memPerFrame;
-    int freePages = totalPages - usedPages;
+    int freePages  = totalPages - usedPages;
 
-    std::cout << "Processes:\n";
-    std::cout << "  " << running  << " running\n"; // VERIFY!!
-    std::cout << "  " << sleeping << " sleeping\n"; // VERIFY!!
-    std::cout << "  " << stopped  << " stopped\n"; // VERIFY!!
-    std::cout << "  " << zombie   << " zombie\n"; // CAN REMOVE
+    long long idleTicks   = cpuIdleTicks.load();
+    long long activeTicks = cpuActiveTicks.load();
+    long long totalTicks  = idleTicks + activeTicks;
 
-    std::cout << "\nMemory (in KB):\n";
-    std::cout << "  " << totalMemory << " total memory\n"; // VERIFY!!
-    std::cout << "  " << usedMemory  << " used memory\n"; // VERIFY!!
-    std::cout << "  " << freeMemory  << " free memory\n"; // VERIFY!!
+    std::cout << "Memory (in KB):\n";
+    std::cout << "  " << totalMemory << " bytes" << " total memory\n";
+    std::cout << "  " << usedMemory  << " bytes" << " used memory\n";
+    std::cout << "  " << freeMemory  << " bytes" << " free memory\n";
 
-    std::cout << "\nPages:\n";
-    std::cout << "  " << usedPages << " used pages\n"; // VERIFY!!
-    std::cout << "  " << freePages << " free pages\n"; // VERIFY!!
+    std::cout << "\nCPU Ticks:\n";
+    std::cout << "  " << idleTicks   << " idle cpu ticks\n";
+    std::cout << "  " << activeTicks << " active cpu ticks\n";
+    std::cout << "  " << totalTicks  << " total cpu ticks\n";
+
+    std::cout << "\nPaging:\n";
+    std::cout << "  " << pagedInCount.load()  << " num paged in\n"; // NO VALUES BEING PLACED YET
+    std::cout << "  " << pagedOutCount.load() << " num paged out\n"; // NO VALUES BEING PLACED YET
+
     std::cout << "--------------------------------------------\n";
 }
 

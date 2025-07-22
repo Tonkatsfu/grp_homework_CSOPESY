@@ -181,7 +181,7 @@ int getTotalMemory() {
     for (const auto& block : memoryBlocks) {
         total += block.size;
     }
-    return total / 1024; 
+    return total;  
 }
 
 int getTotalUsedMemory() {
@@ -191,7 +191,7 @@ int getTotalUsedMemory() {
             used += block.size;
         }
     }
-    return used / 1024; 
+    return used;  
 }
 
 int getAvailableMemory() {
@@ -201,6 +201,7 @@ int getAvailableMemory() {
             freeMem += block.size;
         }
     }
-    return freeMem / 1024; 
+    return freeMem;  
 }
+
 

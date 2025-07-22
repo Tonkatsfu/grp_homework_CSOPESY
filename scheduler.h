@@ -298,5 +298,6 @@ void startDummyProcesses();
 void stopDummyProcesses();
 void displayProcessSMI();
 void displayVMStat();
+void generateSchedulerReport();
 
 #endif

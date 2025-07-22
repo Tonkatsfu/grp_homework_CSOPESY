@@ -35,6 +35,7 @@ int processGenerationIntervalTicks = 5000;
 
 std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
+std::mutex logFileMutex;
 std::vector<std::queue<Process*>> cpuQueue; 
 
 std::atomic<long long> cpuIdleTicks{0}; 
@@ -238,6 +239,9 @@ void startScheduler() {
         initialized = true;
         mainSchedulerThread = std::make_unique<std::thread>(runScheduler);
     }
+
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Scheduler started!\033[0m\n";
 }
 
 void stopScheduler() {
@@ -254,6 +258,9 @@ void stopScheduler() {
             mainSchedulerThread.reset();
         }
     }
+
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Scheduler stopped!\033[0m\n";
 }
 
 void addNewProcess(const std::string& processName, int memorySize) {
@@ -363,13 +370,15 @@ void addNewProcessWithInstructions(const std::string& name, int memory, const st
 }
 
 void printSchedulerStatus(std::ostream& os) {
+    os << "\033[2J\033[1;1H";
+    os << "\033[33m[System] Scheduler statistics logged!\033[0m" << std::endl;
     int runningCores = runningProcesses.size();
     int availCores = numCPU - runningCores;
     double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
     
-    std::cout << "\n-----------------------------------------------\n";
-    std::cout << "\033[34mScheduler Statistics\033[0m\n";
-    std::cout << std::endl;
+    os << "\n-----------------------------------------------\n";
+    os << "\033[34mScheduler Statistics\033[0m\n";
+    os << std::endl;
 
     os << "CPU Utilization: " << cpuPercentage << "%\n" ; 
     os << "Cores used: " << runningCores << " \n";
@@ -425,7 +434,7 @@ void printSchedulerStatus(std::ostream& os) {
         }
     }
 
-    std::cout << "-----------------------------------------------\n";
+    os << "-----------------------------------------------\n";
 }
 
 void dummyProcessGenerator() { // TODO: Should stop making dummy processes when memory is full
@@ -474,6 +483,8 @@ void startDummyProcesses() {
         generateProcess.store(true);
         dummyProcessThread = std::make_unique<std::thread>(dummyProcessGenerator);
     }
+
+    std::cout << "\033[33m[System] Dummy process generator started.\033[0m\n";
 }
 
 void stopDummyProcesses() {
@@ -495,11 +506,15 @@ void stopDummyProcesses() {
             }
         }
     }
+
+    std::cout << "\033[33m[System] Stopping dummy process generator...\033[0m\n";
 }
 
 void displayProcessSMI() {
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Gathered real-time process statistics!\033[0m\n";
     std::cout << "\n-----------------------------------------------";
-    std::cout << "\033[34m\nProcess SMI\n\033[0m";
+    std::cout << "\033[34m\nSystem Monitoring Interface\n\033[0m";
     std::cout << std::endl;
 
     int totalMemBytes = getTotalMemory();         
@@ -533,6 +548,8 @@ void displayProcessSMI() {
 }
 
 void displayVMStat() {
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Collected virtual memory statistics!\033[0m\n";
     std::cout << "\n-----------------------------------------------";
     std::cout << "\033[34m\nVirtual Machine Statistics\n\033[0m";
     std::cout << std::endl;
@@ -572,7 +589,29 @@ void displayVMStat() {
     std::cout << "-----------------------------------------------\n";
 }
 
+void generateSchedulerReport() {
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Scheduler statistics logged!\033[0m" << std::endl;
 
+    std::lock_guard<std::mutex> logLock(logFileMutex);
+    std::ofstream logFile("csopesy-log.txt", std::ios::app);
+
+    if (logFile.is_open()) {
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        char buffer[80];
+        strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S%p", std::localtime(&now));
+
+        logFile << "------------------- Scheduler Report @ " << buffer << " -------------------\n";
+        printSchedulerStatus(logFile);
+        logFile << "-----------------------------------------------------------------------\n\n";
+
+        std::cout << "\n+-------------------------------------------------------+\n";
+        std::cout << "| \033[32mSuccessfully generated report in file csopesy-log.txt\033[0m |\n";
+        std::cout << "+-------------------------------------------------------+\n";
+    } else {
+        std::perror("Error opening csopesy-log.txt");
+    }
+}
 
 
 

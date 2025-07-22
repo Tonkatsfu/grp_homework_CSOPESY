@@ -4,6 +4,7 @@
 #include <sstream>
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 
 int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec;
 int maxOverallMem, memPerFrame, memPerProc, minMemPerProc, maxMemPerProc;
@@ -64,20 +65,25 @@ void initialize() {
         std::exit(EXIT_FAILURE);
     }
 
-    std::cout << "\nConfiguration Loaded!\n";
-    std::cout << "-----------------------------------------------\n";
-    std::cout << "\033[34mConfiguration:\033[0m\n";
-    std::cout << std::endl;
-    std::cout << "  numCPU: " << numCPU << "\n"
-              << "  scheduler: " << scheduler << "\n"
-              << "  quantumCycles: " << quantumCycles << "\n"
-              << "  batchProcessFreq: " << batchProcessFreq << "\n"
-              << "  minIns: " << minIns << "\n"
-              << "  maxIns: " << maxIns << "\n"
-              << "  delayPerExec: " << delayPerExec << "\n"
-              << "  maxOverallMem: " << maxOverallMem << "\n"
-              << "  memPerFrame: " << memPerFrame << "\n"
-              << "  memPerProc: " << memPerProc << "\n"
-              << "  minMemPerProc: " << minMemPerProc << "\n"
-              << "  maxMemPerProc: " << maxMemPerProc << "\n";
+    std::cout << "\033[2J\033[1;1H";
+    std::cout << "\033[33m[System] Configuration file loaded!\033[0m\n\n";
+
+    std::cout << "+------------------------+------------------------+\n";
+    std::cout << "| \033[34mConfiguration Key\033[0m      | \033[34mValue\033[0m                  |\n";
+    std::cout << "+------------------------+------------------------+\n";
+
+    std::cout << "| numCPU                 | " << std::left << std::setw(23) << numCPU << "|\n";
+    std::cout << "| scheduler              | " << std::left << std::setw(23) << scheduler << "|\n";
+    std::cout << "| quantumCycles          | " << std::left << std::setw(23) << quantumCycles << "|\n";
+    std::cout << "| batchProcessFreq       | " << std::left << std::setw(23) << batchProcessFreq << "|\n";
+    std::cout << "| minIns                 | " << std::left << std::setw(23) << minIns << "|\n";
+    std::cout << "| maxIns                 | " << std::left << std::setw(23) << maxIns << "|\n";
+    std::cout << "| delayPerExec           | " << std::left << std::setw(23) << delayPerExec << "|\n";
+    std::cout << "| maxOverallMem          | " << std::left << std::setw(23) << maxOverallMem << "|\n";
+    std::cout << "| memPerFrame            | " << std::left << std::setw(23) << memPerFrame << "|\n";
+    std::cout << "| memPerProc             | " << std::left << std::setw(23) << memPerProc << "|\n";
+    std::cout << "| minMemPerProc          | " << std::left << std::setw(23) << minMemPerProc << "|\n";
+    std::cout << "| maxMemPerProc          | " << std::left << std::setw(23) << maxMemPerProc << "|\n";
+
+    std::cout << "+------------------------+------------------------+\n";
 }

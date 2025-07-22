@@ -6,8 +6,6 @@
 
 #include <cstdlib>
 
-std::mutex logFileMutex;
-
 bool isInitialized = false;
 
 void printHeader() {
@@ -187,14 +185,12 @@ void processCommand(const std::string& command) {
 
         // Scheduler -start (Start the Scheduler)
         else if (command == "scheduler -start") {
-            std::cout << "Scheduler started!\n";
             startScheduler();
             startDummyProcesses();
         }
 
         // Scheduler -stop (Stop the Scheduler)
         else if (command == "scheduler -stop") {
-            std::cout << "Scheduler stopped!\n";
             stopDummyProcesses();
             stopScheduler();
         }
@@ -210,26 +206,7 @@ void processCommand(const std::string& command) {
 
         // Report -util (Generates a report)
         else if (command == "report -util") {
-            std::cout << std::endl; 
-            std::lock_guard<std::mutex> logLock(logFileMutex); 
-            std::ofstream logFile("csopesy-log.txt", std::ios::app);
-            if (logFile.is_open())
-            {
-                auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-                char buffer[80];
-                strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S%p", std::localtime(&now));
-
-                printSchedulerStatus(logFile);
-                logFile.close();
-                std::cout << "-----------------------------------------------------------------------\n";
-                std::cout << "\033[34mSuccesfully generated report in file csopesy-log.txt\033[0m" << std::endl;
-                std::cout << "-----------------------------------------------------------------------\n";
-            }
-
-            else
-            {
-                std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
-            }
+            generateSchedulerReport();
         }
 
         // Process-smi

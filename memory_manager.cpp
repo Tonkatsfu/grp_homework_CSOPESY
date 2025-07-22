@@ -16,9 +16,10 @@ void initializeMemoryManager()
     memoryBlocks.clear();
     memoryBlocks.emplace_back(0, maxOverallMem, true);
     std::cout << std::endl; 
-    std::cout << "Memory Manager initialized with " 
-              << memoryBlocks.size() << " block(s).\n"
-              << "-----------------------------------------------\n";
+    std::cout << "+-------------------------------------------------+\n";
+    std::cout << "| \033[32mMemory Manager initialized with \033[0m"; 
+    std::cout << memoryBlocks.size() << " \033[32mblock(s)\033[0m      |\n";
+    std::cout << "+-------------------------------------------------+\n";
 }
 
 // First-Fit

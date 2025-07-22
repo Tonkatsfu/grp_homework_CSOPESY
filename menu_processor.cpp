@@ -55,8 +55,6 @@ void processCommand(const std::string& command) {
         else if (command == "exit") {
             if (currentScreenName.empty()) {
                 std::cout << "Terminating command line emulator." << std::endl;
-                stopDummyProcesses();
-                stopScheduler();
                 terminateProgram = true;
             }
 

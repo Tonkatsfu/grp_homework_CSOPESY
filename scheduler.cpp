@@ -3,6 +3,7 @@
 #include "menu_processor.h"
 #include "cpu_tick_global.h"
 #include "memory_manager.h"
+#include "paged_memory_manager.h"
 
 #include <iostream>
 #include <fstream>
@@ -17,6 +18,7 @@
 #include <map>
 #include <atomic>
 #include <random> 
+#include <set>
 
 std::queue<Process*> readyQueue;
 std::vector<Process*> finishedProcesses;
@@ -131,17 +133,13 @@ void cpuWorker(int coreID) {
                     }
                 }
 
-                if (coreID == 0) {
-                    std::lock_guard<std::mutex> logLock(sliceLogMutex);
-                    printMemoryStatus(globalSliceCounter++);
-                }
 
                 if (!wasRequeued) {
                     std::lock_guard<std::mutex> lock(mtx);
                     if (p->currentInstruction >= p->totalInstructions) {
                         p->finished = true;
                         finishedProcesses.push_back(p);
-                        deallocateMemory(p->pid);
+                        deallocatePagedMemory(p->pid);
                         p->memoryAllocated = false;
                     } else {
                         readyQueue.push(p);
@@ -195,7 +193,7 @@ void cpuWorker(int coreID) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     runningProcesses.erase(p->name);
-                    deallocateMemory(p->pid);
+                    deallocatePagedMemory(p->pid);
                     p->memoryAllocated = false;
                 }
             }
@@ -268,15 +266,17 @@ void addNewProcess(const std::string& processName, int memorySize) {
 
     int pid = pidCounter++;
 
-    if (!allocateMemory(pid, memorySize)) {
-        std::cerr << "Failed to allocate memory for process " << processName << std::endl;
-        return;
-    }
+    
 
     Process* p = new Process(processName);
     p->pid = pid;
     p->memorySize = memorySize;
     p->memoryAllocated = true;
+
+    if (!allocatePagedMemory(p)) {
+        std::cerr << "Failed to allocate memory for process " << processName << std::endl;
+        return;
+    }
 
     /*if (!allocateMemory(p->pid, memPerProc)) {
             std::cout << "Not enough memory for process " << processName << "\n";
@@ -372,9 +372,15 @@ void addNewProcessWithInstructions(const std::string& name, int memory, const st
 void printSchedulerStatus(std::ostream& os) {
     os << "\033[2J\033[1;1H";
     os << "\033[33m[System] Scheduler statistics logged!\033[0m" << std::endl;
-    int runningCores = runningProcesses.size();
+    std::set<int> usedCoreIDs;
+    for (const auto& pair : runningProcesses) 
+    {
+        if (pair.second->assignedCoreID >= 0)
+            usedCoreIDs.insert(pair.second->assignedCoreID);
+    }
+    int runningCores = usedCoreIDs.size();
     int availCores = numCPU - runningCores;
-    double cpuPercentage = (static_cast<double>(runningCores) / numCPU) * 100;
+    double cpuPercentage = (numCPU > 0) ? (static_cast<double>(runningCores) / numCPU) * 100 : 0;
     
     os << "\n-----------------------------------------------\n";
     os << "\033[34mScheduler Statistics\033[0m\n";
@@ -457,14 +463,14 @@ void dummyProcessGenerator() { // TODO: Should stop making dummy processes when 
         ticks++;
         if (ticks >= batchProcessFreq)
         {
-            if (!hasEnoughFreeMemory(64)) {
+            if (!hasEnoughPagedMemory(64)) {
                 std::cout << "Memory full. Terminating process generator" << std::endl;
                 stopDummyProcesses();
                 break;
             }
 
             int memPerProc = memDist(gen);
-            if (hasEnoughFreeMemory(memPerProc))
+            if (hasEnoughPagedMemory(memPerProc))
             {
                 std::string processName = "p" + std::to_string(counter++);
                 //std::cout << "[Generator] Creating process " << processName   // PRINTS LOGS OF CREATED DUMMY PROCESSES (Uncomment to see)

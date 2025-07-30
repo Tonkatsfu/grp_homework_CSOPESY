@@ -7,7 +7,7 @@
 #include <iomanip>
 
 int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec;
-int maxOverallMem, memPerFrame, memPerProc, minMemPerProc, maxMemPerProc;
+int maxOverallMem, memPerFrame, minMemPerProc, maxMemPerProc;
 std::string scheduler;
 
 bool isValidMemorySize(int mem) {
@@ -42,8 +42,6 @@ void initialize() {
             config >> maxOverallMem;
         } else if (key == "mem-per-frame") {
             config >> memPerFrame;
-        } else if (key == "mem-per-proc") {
-            config >> memPerProc;
         } else if (key == "min-mem-per-proc") {
             config >> minMemPerProc;
         } else if (key == "max-mem-per-proc") {
@@ -57,7 +55,6 @@ void initialize() {
     // Validate memory sizes
     if (!isValidMemorySize(maxOverallMem) ||
         !isValidMemorySize(memPerFrame) ||
-        !isValidMemorySize(memPerProc) ||
         !isValidMemorySize(minMemPerProc) ||
         !isValidMemorySize(maxMemPerProc)) 
     {
@@ -81,7 +78,6 @@ void initialize() {
     std::cout << "| delayPerExec           | " << std::left << std::setw(23) << delayPerExec << "|\n";
     std::cout << "| maxOverallMem          | " << std::left << std::setw(23) << maxOverallMem << "|\n";
     std::cout << "| memPerFrame            | " << std::left << std::setw(23) << memPerFrame << "|\n";
-    std::cout << "| memPerProc             | " << std::left << std::setw(23) << memPerProc << "|\n";
     std::cout << "| minMemPerProc          | " << std::left << std::setw(23) << minMemPerProc << "|\n";
     std::cout << "| maxMemPerProc          | " << std::left << std::setw(23) << maxMemPerProc << "|\n";
 

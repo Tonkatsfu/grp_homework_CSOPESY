@@ -1,6 +1,8 @@
 #ifndef SCHEDULER_H
 #define SCHEDULER_H
 
+#include "paged_memory_manager.h"
+
 #include <iostream>
 #include <memory> 
 #include <string> 

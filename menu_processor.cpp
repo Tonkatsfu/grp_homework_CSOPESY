@@ -3,6 +3,7 @@
 #include "scheduler.h"
 #include "cpu_tick_global.h"
 #include "memory_manager.h"
+#include "paged_memory_manager.h"
 
 #include <cstdlib>
 
@@ -227,7 +228,7 @@ void processCommand(const std::string& command) {
         // Initialize
         if(isInitialized == false && command == "initialize") {
             initialize();
-            initializeMemoryManager();
+            initializePagedMemoryManager();
             isInitialized = true;
         }
         

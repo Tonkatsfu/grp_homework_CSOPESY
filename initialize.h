@@ -5,7 +5,7 @@
 #include <string>
 
 extern int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, 
-           maxOverallMem, memPerFrame, memPerProc, minMemPerProc, maxMemPerProc;
+           maxOverallMem, memPerFrame, minMemPerProc, maxMemPerProc;
 extern std::string scheduler;
 
 void initialize();

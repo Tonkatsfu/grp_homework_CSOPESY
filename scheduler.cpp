@@ -276,11 +276,23 @@ void addNewProcess(const std::string& processName)
     */
 
     
-void addNewProcess(const std::string& processName)
+void addNewProcess(const std::string& processName, int memorySize)
 {
     std::lock_guard<std::mutex> lock(mtx);
+
+    if (!hasEnoughFreeMemory(memorySize)) {
+        std::cerr << "Not enough memory to create process: " << processName << std::endl;
+        return;
+    }
+
     Process* p = new Process(processName);
     p->pid = pidCounter++;
+
+    if (!allocateMemory(p->pid, memorySize)) {
+        std::cerr << "Memory allocation failed for process: " << processName << std::endl;
+        delete p;
+        return;
+    }
 
     // Set up random number generators
     std::random_device rd;
@@ -449,7 +461,7 @@ void dummyProcessGenerator()
         {
             if (hasEnoughFreeMemory(minMemPerProc))
             {
-                addNewProcess("p" + std::to_string(counter++));
+                addNewProcess("p" + std::to_string(counter++), minMemPerProc);
             }
             ticks = 0;
         }

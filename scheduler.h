@@ -287,7 +287,7 @@ extern bool initialized;
 
 void startScheduler();
 void stopScheduler();
-void addNewProcess(const std::string& processName);
+void addNewProcess(const std::string& processName, int memorySize);
 void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();

@@ -85,29 +85,48 @@ void processCommand(const std::string& command)
     
     else if (command.rfind("screen -s ", 0) == 0)
     {
-        std::string screenName = command.substr(10);
-        if (screenName.empty())
-        {
-            std::cout << "Usage: screen -s <name>" << std::endl;
+        std::string args = command.substr(10);
+        size_t spacePos = args.find(' ');
+
+        if (spacePos == std::string::npos) {
+            std::cout << "Missing memory size. Usage: screen -s <name> <memory>" << std::endl;
             return;
         }
 
-        /*
-        if (activeScreens.count(screenName))
-        {
-            std::cout << "Screen name " << screenName <<" already exists." << std::endl;
-        }
-            */
+        std::string processName = args.substr(0, spacePos);
+        std::string memStr = args.substr(spacePos + 1);
 
-        else
-        {
-            if(allProcesses[screenName] != NULL && allProcesses[screenName]->finished == false){
-                std:: cout << "Screen " << screenName << " already exists you may want to use screen -r <process name>.\n";
-            }else{
-                currentScreenName = screenName;
-                addNewProcess(screenName);
-                //startScheduler();
-                ScreenConsoles(*allProcesses[screenName]);
+        if (processName.empty()) {
+            std::cout << "Usage: screen -s <name> <memory>" << std::endl;
+            return;
+        }
+
+        int memorySize;
+        try {
+            memorySize = std::stoi(memStr);
+        } catch (...) {
+            std::cout << "Invalid memory size. Usage: screen -s <name> <memory>" << std::endl;
+            return;
+        }
+
+        if (memorySize < 64 || memorySize > 65536) {
+            std::cout << "Memory must be between 64 and 65536." << std::endl;
+            return;
+        }
+
+        // Check if process already exists and is running
+        if (allProcesses[processName] != nullptr && !allProcesses[processName]->finished) {
+            std::cout << "Screen " << processName << " already exists. You may want to use screen -r <process name>.\n";
+        } else {
+            currentScreenName = processName;
+
+            addNewProcess(processName, memorySize);
+
+            // Check if it was added successfully
+            if (allProcesses.count(processName) && allProcesses[processName] != nullptr) {
+                ScreenConsoles(*allProcesses[processName]);
+            } else {
+                std::cout << "Failed to create screen for process: " << processName << std::endl;
             }
         }
     }

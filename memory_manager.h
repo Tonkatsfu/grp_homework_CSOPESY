@@ -1,27 +1,45 @@
-#ifndef memory_manager_h
-#define memory_manager_h
+#ifndef MEMORY_MANAGER_H
+#define MEMORY_MANAGER_H
 
 #include "initialize.h"
 #include <vector>
-#include <string>
+#include <map>
+#include <cstdint>
 
-struct MemoryBlock 
-{
-    int startAddress; // Starting address of the memory block
-    int size;         // Size of the memory block in bytes
-    bool isFree;      // Indicates if the block is free or allocated
-    int processId;  // ID of the process that owns the block, -1 if free
+struct MemoryBlock {
+    int startAddress;
+    int size;
+    bool isFree;
+    int processId;
 
     MemoryBlock(int start, int sz, bool free, int pid = -1)
         : startAddress(start), size(sz), isFree(free), processId(pid) {}
 };
 
+struct PageTableEntry {
+    int frameNumber = -1;
+    bool valid = false;
+    bool dirty = false;
+    bool referenced = false;
+};
+
+struct PageTable {
+    std::map<int, PageTableEntry> pages; // virtual page -> entry
+};
+
 extern std::vector<MemoryBlock> memoryBlocks;
+extern std::map<int, PageTable> pageTables;
+extern std::vector<int> freeFrameList;
+extern std::map<int, std::vector<uint8_t>> physicalMemory;
+extern int frameCount;
 
 void initializeMemoryManager();
 bool allocateMemory(int processID, int memoryRequired);
 void deallocateMemory(int processID);
 bool hasEnoughFreeMemory(int requiredMem);
+int getPhysicalAddress(int processID, int virtualAddress);
+uint16_t READ_MEMORY(int processID, int virtualAddress);
+void WRITE_MEMORY(int processID, int virtualAddress, uint16_t value);
 void printMemoryStatus(int qq);
 
 #endif

@@ -5,7 +5,7 @@
 #include <algorithm>
 
 int numCPU, quantumCycles, batchProcessFreq, minIns, maxIns, delayPerExec, 
-    maxOverallMem, memPerFrame, memPerProc;
+    maxOverallMem, memPerFrame, minMemPerProc, maxMemPerProc;
 std::string scheduler;
 
 void initialize() {
@@ -35,8 +35,10 @@ void initialize() {
             config >> maxOverallMem;
         } else if (key == "mem-per-frame") {
             config >> memPerFrame;
-        } else if (key == "mem-per-proc") {
-            config >> memPerProc;
+        } else if (key == "min-mem-per-proc") {
+            config >> minMemPerProc;
+        } else if (key == "max-mem-per-proc") {
+            config >> maxMemPerProc;
         } else {
             std::string skip;
             std::getline(config, skip);
@@ -53,5 +55,6 @@ void initialize() {
               << "  delayPerExec: " << delayPerExec << "\n"
               << "  maxOverallMem: " << maxOverallMem << "\n"
               << "  memPerFrame: " << memPerFrame << "\n"
-              << "  memPerProc: " << memPerProc << "\n\n";
+              << "  minMemPerProc: " << minMemPerProc << "\n"
+              << "  maxMemPerProc: " << maxMemPerProc << "\n\n";
 }

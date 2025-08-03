@@ -62,7 +62,7 @@ void cpuWorker(int coreID)
         {
             if (p && !p->memoryAllocated)
             {
-                if (!allocateMemory(p->pid, memPerProc))
+                if (!allocateMemory(p->pid, minMemPerProc))
                 {
                     std::lock_guard<std::mutex> lock(mtx);
                     readyQueue.push(p);
@@ -447,7 +447,7 @@ void dummyProcessGenerator()
         ticks++;
         if (ticks >= batchProcessFreq)
         {
-            if (hasEnoughFreeMemory(memPerProc))
+            if (hasEnoughFreeMemory(minMemPerProc))
             {
                 addNewProcess("p" + std::to_string(counter++));
             }

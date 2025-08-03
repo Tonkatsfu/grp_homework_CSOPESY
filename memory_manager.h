@@ -41,5 +41,6 @@ int getPhysicalAddress(int processID, int virtualAddress);
 uint16_t READ_MEMORY(int processID, int virtualAddress);
 void WRITE_MEMORY(int processID, int virtualAddress, uint16_t value);
 void printMemoryStatus(int qq);
+int handlePageFault(int processID, int virtualPageNum);
 
 #endif

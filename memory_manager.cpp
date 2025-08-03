@@ -12,13 +12,14 @@
 
 namespace fs = std::filesystem;
 
-// Paging structures
 std::vector<MemoryBlock> memoryBlocks;
 std::map<int, PageTable> pageTables;
 std::vector<int> freeFrameList;
 std::map<int, std::vector<uint8_t>> physicalMemory;
 
+std::fstream backingStore;
 int frameCount;
+const std::string backingStoreFile = "csopesy-backing-store.txt";
 
 void initializeMemoryManager() {
     memoryBlocks.clear();
@@ -30,8 +31,21 @@ void initializeMemoryManager() {
         freeFrameList.push_back(i);
     }
 
+    backingStore.open(backingStoreFile, std::ios::in | std::ios::out | std::ios::binary);
+    if (!backingStore.is_open()) {
+        backingStore.open(backingStoreFile, std::ios::out | std::ios::binary);
+        backingStore.close();
+        backingStore.open(backingStoreFile, std::ios::in | std::ios::out | std::ios::binary);
+    }
+    backingStore.seekp(0, std::ios::end);
+    int size = backingStore.tellp();
+    if (size < maxOverallMem) {
+        backingStore.seekp(maxOverallMem - 1);
+        backingStore.write("", 1);
+    }
+
     std::cout << "Memory Manager Initialized with " << memoryBlocks.size()
-              << " block(s) and " << frameCount << " frames.\n";
+              << " block(s), " << frameCount << " frames, and backing store initialized.\n";
 }
 
 bool allocateMemory(int processID, int memoryRequired) {
@@ -70,11 +84,14 @@ bool hasEnoughFreeMemory(int requiredMem) {
 
 int handlePageFault(int processID, int virtualPageNum) {
     if (freeFrameList.empty()) {
-        // Simple FIFO eviction
         for (auto& [pid, table] : pageTables) {
             for (auto& [vpn, entry] : table.pages) {
                 if (entry.valid) {
                     int frame = entry.frameNumber;
+
+                    backingStore.seekp((pid * 1000 + vpn) * memPerFrame);
+                    backingStore.write(reinterpret_cast<char*>(physicalMemory[frame].data()), memPerFrame);
+
                     physicalMemory.erase(frame);
                     entry.valid = false;
                     entry.frameNumber = -1;
@@ -87,8 +104,12 @@ int handlePageFault(int processID, int virtualPageNum) {
 
     int frame = freeFrameList.back();
     freeFrameList.pop_back();
-    physicalMemory[frame] = std::vector<uint8_t>(memPerFrame, 0);
+    std::vector<uint8_t> data(memPerFrame, 0);
 
+    backingStore.seekg((processID * 1000 + virtualPageNum) * memPerFrame);
+    backingStore.read(reinterpret_cast<char*>(data.data()), memPerFrame);
+
+    physicalMemory[frame] = data;
     pageTables[processID].pages[virtualPageNum] = {frame, true, false, false};
     return frame;
 }

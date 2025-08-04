@@ -54,12 +54,6 @@ int main()
 
     while (!terminateProgram)
     {
-        /*
-        if (currentScreenName.empty())
-        {
-            std::cout << "Enter a command: ";
-        }
-            */
 
         std::cout << "Enter a command: ";
 

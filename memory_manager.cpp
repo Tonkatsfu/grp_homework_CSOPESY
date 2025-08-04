@@ -13,6 +13,13 @@
 #include <sstream>
 #include <iomanip>
 
+
+unsigned long idleCpuTicks = 0;
+unsigned long activeCpuTicks = 0;
+
+unsigned long numPagedIn = 0;
+unsigned long numPagedOut = 0;
+
 namespace fs = std::filesystem;
 
 std::vector<MemoryBlock> memoryBlocks;
@@ -94,6 +101,7 @@ int handlePageFault(int processID, int virtualPageNum) {
 
                     backingStore.seekp((pid * 1000 + vpn) * memPerFrame);
                     backingStore.write(reinterpret_cast<char*>(physicalMemory[frame].data()), memPerFrame);
+                    numPagedOut++; 
 
                     physicalMemory.erase(frame);
                     entry.valid = false;
@@ -111,6 +119,7 @@ int handlePageFault(int processID, int virtualPageNum) {
 
     backingStore.seekg((processID * 1000 + virtualPageNum) * memPerFrame);
     backingStore.read(reinterpret_cast<char*>(data.data()), memPerFrame);
+    numPagedIn++;
 
     physicalMemory[frame] = data;
     pageTables[processID].pages[virtualPageNum] = {frame, true, false, false};
@@ -253,6 +262,21 @@ int getMemoryUsedByProcess(int processID) {
     return pageCount * memPerFrame;
 }
 
+unsigned long getIdleCpuTicks() {
+    return idleCpuTicks;
+}
+
+unsigned long getActiveCpuTicks() {
+    return activeCpuTicks;
+}
+
+unsigned long getNumPagesPagedIn() {
+    return numPagedIn;
+}
+
+unsigned long getNumPagesPagedOut() {
+    return numPagedOut;
+}
 
 
 

@@ -351,5 +351,6 @@ void dummyProcessGenerator();
 void startDummyProcesses();
 void stopDummyProcesses();
 Process* getProcessByPid(std::string targetPid);
+void printVMStat();
 
 #endif

@@ -511,6 +511,31 @@ Process* getProcessByPid(std::string targetPid) {
     return nullptr; // Not found
 }
 
+void printVMStat() {
+    //int totalMemory = getTotalMemory();
+    //int usedMemory = getConsumedMemory();
+    //int freeMemory = totalMemory - usedMemory;
+
+    //unsigned long idleTicks   = getIdleCpuTicks();
+    //unsigned long activeTicks = getActiveCpuTicks();
+    //unsigned long totalTicks  = idleTicks + activeTicks;
+
+    //unsigned long pagedIn  = getNumPagesPagedIn();
+    //unsigned long pagedOut = getNumPagesPagedOut();
+
+    std::cout << "\nVirtual Memory Statistics (vmstat)\n";
+    std::cout << "------------------------------------------------------\n";
+    //std::cout << "Total memory       : " << totalMemory << " bytes\n";
+    //std::cout << "Used memory        : " << usedMemory  << " bytes\n";
+    //std::cout << "Free memory        : " << freeMemory  << " bytes\n";
+    //std::cout << "Idle CPU ticks     : " << idleTicks   << "\n";
+    //std::cout << "Active CPU ticks   : " << activeTicks << "\n";
+    //std::cout << "Total CPU ticks    : " << totalTicks  << "\n";
+    //std::cout << "Pages paged in     : " << pagedIn     << "\n";
+    //std::cout << "Pages paged out    : " << pagedOut    << "\n";
+    std::cout << "------------------------------------------------------\n";
+}
+
 
 
 

@@ -17,7 +17,6 @@ std::map<int, PageTable> pageTables;
 std::vector<int> freeFrameList;
 std::map<int, std::vector<uint8_t>> physicalMemory;
 
-std::fstream backingStore;
 int frameCount;
 const std::string backingStoreFile = "csopesy-backing-store.txt";
 
@@ -31,18 +30,8 @@ void initializeMemoryManager() {
         freeFrameList.push_back(i);
     }
 
-    backingStore.open(backingStoreFile, std::ios::in | std::ios::out | std::ios::binary);
-    if (!backingStore.is_open()) {
-        backingStore.open(backingStoreFile, std::ios::out | std::ios::binary);
-        backingStore.close();
-        backingStore.open(backingStoreFile, std::ios::in | std::ios::out | std::ios::binary);
-    }
-    backingStore.seekp(0, std::ios::end);
-    int size = backingStore.tellp();
-    if (size < maxOverallMem) {
-        backingStore.seekp(maxOverallMem - 1);
-        backingStore.write("", 1);
-    }
+    std::ofstream clearStore(backingStoreFile, std::ios::trunc);
+    clearStore.close();
 
     std::cout << "Memory Manager Initialized with " << memoryBlocks.size()
               << " block(s), " << frameCount << " frames, and backing store initialized.\n";
@@ -53,13 +42,47 @@ bool allocateMemory(int processID, int memoryRequired) {
     int requiredPages = memoryRequired / memPerFrame;
 
     for (int i = 0; i < requiredPages; ++i) {
-        if (freeFrameList.empty()) return false;
+        // If no free frame, evict something
+        if (freeFrameList.empty()) {
+            bool evicted = false;
+            for (auto& [pid, table] : pageTables) {
+                for (auto& [vpn, entry] : table.pages) {
+                    if (entry.valid) {
+                        int frame = entry.frameNumber;
+
+                        std::ofstream store(backingStoreFile, std::ios::app);
+                        if (store.is_open()) {
+                            store << "Evicted P" << pid << ", VPN " << vpn << ": ";
+                            for (auto byte : physicalMemory[frame]) {
+                                store << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
+                            }
+                            store << "\n";
+                            store.close();
+                        }
+
+                        physicalMemory.erase(frame);
+                        entry.valid = false;
+                        entry.frameNumber = -1;
+                        freeFrameList.push_back(frame);
+                        evicted = true;
+                        break;
+                    }
+                }
+                if (evicted) break;
+            }
+
+            if (freeFrameList.empty()) {
+                return false;  
+            }
+        }
 
         int frame = freeFrameList.back();
         freeFrameList.pop_back();
 
+        std::vector<uint8_t> data(memPerFrame, 0);
+        physicalMemory[frame] = data;
+
         pageTables[processID].pages[i] = {frame, true, false, false};
-        physicalMemory[frame] = std::vector<uint8_t>(memPerFrame, 0);
     }
 
     return true;
@@ -89,8 +112,15 @@ int handlePageFault(int processID, int virtualPageNum) {
                 if (entry.valid) {
                     int frame = entry.frameNumber;
 
-                    backingStore.seekp((pid * 1000 + vpn) * memPerFrame);
-                    backingStore.write(reinterpret_cast<char*>(physicalMemory[frame].data()), memPerFrame);
+                    std::ofstream store(backingStoreFile, std::ios::app);
+                    if (store.is_open()) {
+                        store << "Evicted P" << pid << ", VPN " << vpn << ": ";
+                        for (auto byte : physicalMemory[frame]) {
+                            store << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte) << " ";
+                        }
+                        store << "\n";
+                        store.close();
+                    }
 
                     physicalMemory.erase(frame);
                     entry.valid = false;
@@ -105,9 +135,6 @@ int handlePageFault(int processID, int virtualPageNum) {
     int frame = freeFrameList.back();
     freeFrameList.pop_back();
     std::vector<uint8_t> data(memPerFrame, 0);
-
-    backingStore.seekg((processID * 1000 + virtualPageNum) * memPerFrame);
-    backingStore.read(reinterpret_cast<char*>(data.data()), memPerFrame);
 
     physicalMemory[frame] = data;
     pageTables[processID].pages[virtualPageNum] = {frame, true, false, false};

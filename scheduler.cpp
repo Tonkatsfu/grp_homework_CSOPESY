@@ -286,9 +286,10 @@ void addNewProcess(const std::string& processName)
     */
 
     
-void addNewProcess(const std::string& processName)
+void addNewProcess(const std::string& processName, int memorySize)
 {
     std::lock_guard<std::mutex> lock(mtx);
+
     Process* p = new Process(processName);
     p->pid = pidCounter++;
 
@@ -379,9 +380,6 @@ void addNewProcess(const std::string& processName)
     cv.notify_all(); 
 }
 
-
-
-
 void printSchedulerStatus(std::ostream& os)
 {
     // Clear the screen before printing status
@@ -467,7 +465,7 @@ void dummyProcessGenerator()
         {
             if (hasEnoughFreeMemory(minMemPerProc))
             {
-                addNewProcess("p" + std::to_string(counter++));
+                addNewProcess("p" + std::to_string(counter++), minMemPerProc);
             }
             ticks = 0;
         }

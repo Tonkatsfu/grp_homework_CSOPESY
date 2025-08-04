@@ -10,7 +10,7 @@ bool isInitialized = false;
 
 std::mutex logFileMutex;
 
-void printHeader()
+void printHeader() 
 {
     std::cout << "\033[36m ,-----. ,---.   ,-----. ,------. ,------. ,---.,--.   ,--. \n"
               << "'  .--./'   .-' '  .-.  '|  .--. '|  .---''   .- '\\  `.'  /  \n"
@@ -24,9 +24,8 @@ void printHeader()
     std::cout << "Ian Gabriel De Jesus\n";
     std::cout << "Joemar Lapasaran\n";
     std::cout << "Neo Monserrat\n";
-    std::cout << "-------------------------------------------------------------------------------------------------\n";
+    std::cout << std::endl; 
     std::cout << "\033[33mType 'exit' to quit, 'clear' to clear the screen\033[0m\n";
-
 }
 
 void printProcessSMI()
@@ -35,7 +34,11 @@ void printProcessSMI()
     std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << getMemoryUsageReport() << "\n";
     std::cout << "-------------------------------------------------------------------------------------------------\n";
-    std::cout << std::left << std::setw(20) << "PID" << std::right << std::setw(80) << "Memory Usage (MiB)\n";
+    std::cout << "\033[34m"  
+          << std::left << std::setw(20) << "PID"
+          << std::right << std::setw(80) << "Memory Usage (MiB)"
+          << "\033[0m\n";
+
 
     for (const auto& pair : allProcesses)
     {
@@ -241,7 +244,7 @@ void processCommand(const std::string& command)
 
                 if (allProcesses.count(processName) && allProcesses[processName] != nullptr)
                 {
-                    //allProcesses[processName]->userInstructions = instructions;
+                    allProcesses[processName]->userInstructions = instructions;
                     ScreenConsoles(*allProcesses[processName]);
                 }
                 else

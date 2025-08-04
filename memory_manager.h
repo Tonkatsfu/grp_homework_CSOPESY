@@ -47,4 +47,10 @@ int getRandomValidAddress(int processID);
 std::string getMemoryUsageReport();
 int getMemoryUsedByProcess(int processID);
 
+int getTotalMemory();
+int getConsumedMemory();
+unsigned long getIdleCpuTicks();
+unsigned long getActiveCpuTicks();
+unsigned long getNumPagesPagedIn();
+unsigned long getNumPagesPagedOut();
 #endif

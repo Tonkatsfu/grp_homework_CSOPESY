@@ -508,37 +508,42 @@ Process* getProcessByPid(std::string targetPid) {
             return pair;
         }
     }
-    return nullptr; // Not found
+    return nullptr;
 }
 
 void printVMStat() {
-    //int totalMemory = getTotalMemory();
-    //int usedMemory = getConsumedMemory();
-    //int freeMemory = totalMemory - usedMemory;
+    int totalMemory = getTotalMemory();
+    int usedMemory  = getConsumedMemory();
+    int freeMemory  = totalMemory - usedMemory;
 
-    //unsigned long idleTicks   = getIdleCpuTicks();
-    //unsigned long activeTicks = getActiveCpuTicks();
-    //unsigned long totalTicks  = idleTicks + activeTicks;
+    unsigned long idleTicks   = getIdleCpuTicks();
+    unsigned long activeTicks = getActiveCpuTicks();
+    unsigned long totalTicks  = idleTicks + activeTicks;
 
-    //unsigned long pagedIn  = getNumPagesPagedIn();
-    //unsigned long pagedOut = getNumPagesPagedOut();
+    unsigned long pagedIn  = getNumPagesPagedIn();
+    unsigned long pagedOut = getNumPagesPagedOut();
 
-    std::cout << "\nVirtual Memory Statistics (vmstat)\n";
-    std::cout << "------------------------------------------------------\n";
-    //std::cout << "Total memory       : " << totalMemory << " bytes\n";
-    //std::cout << "Used memory        : " << usedMemory  << " bytes\n";
-    //std::cout << "Free memory        : " << freeMemory  << " bytes\n";
-    //std::cout << "Idle CPU ticks     : " << idleTicks   << "\n";
-    //std::cout << "Active CPU ticks   : " << activeTicks << "\n";
-    //std::cout << "Total CPU ticks    : " << totalTicks  << "\n";
-    //std::cout << "Pages paged in     : " << pagedIn     << "\n";
-    //std::cout << "Pages paged out    : " << pagedOut    << "\n";
-    std::cout << "------------------------------------------------------\n";
+    std::cout << std::endl; 
+    std::cout << "Virtual Memory Statistics\n";
+    std::cout << "+------------------------+------------------------+\n";
+    std::cout << "| \033[34mVirtual Memory Key\033[0m     | \033[34mValue\033[0m                  |\n";
+    std::cout << "+------------------------+------------------------+\n";
+
+    // Memory Info
+    std::cout << "| Total Memory           | " << std::left << std::setw(23) << (std::to_string(totalMemory) + " B") << "|\n";
+    std::cout << "| Used Memory            | " << std::left << std::setw(23) << (std::to_string(usedMemory) + " B")  << "|\n";
+    std::cout << "| Free Memory            | " << std::left << std::setw(23) << (std::to_string(freeMemory) + " B")  << "|\n";
+
+    // CPU Info
+    std::cout << "| Idle CPU Ticks         | " << std::left << std::setw(23) << idleTicks   << "|\n";
+    std::cout << "| Active CPU Ticks       | " << std::left << std::setw(23) << activeTicks << "|\n";
+    std::cout << "| Total CPU Ticks        | " << std::left << std::setw(23) << totalTicks  << "|\n";
+
+    // Paging Info
+    std::cout << "| Pages Paged In         | " << std::left << std::setw(23) << pagedIn     << "|\n";
+    std::cout << "| Pages Paged Out        | " << std::left << std::setw(23) << pagedOut    << "|\n";
+
+    std::cout << "+------------------------+------------------------+\n";
+    std::cout << std::endl; 
 }
-
-
-
-
-
-
 

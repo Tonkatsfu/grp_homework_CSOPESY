@@ -54,7 +54,8 @@ int main()
 
     while (!terminateProgram)
     {
-
+        
+        std::cout << "-------------------------------------------------------------------------------------------------\n";
         std::cout << "Enter a command: ";
 
         std::getline(std::cin, command);

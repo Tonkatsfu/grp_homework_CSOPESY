@@ -283,12 +283,6 @@ void addNewProcess(const std::string& processName, int memorySize)
     Process* p = new Process(processName);
     p->pid = pidCounter++;
 
-    if (!allocateMemory(p->pid, memorySize)) {
-        std::cerr << "Memory allocation failed for process: " << processName << std::endl;
-        delete p;
-        return;
-    }
-
     // Set up random number generators
     std::random_device rd;
     std::mt19937 gen(rd());

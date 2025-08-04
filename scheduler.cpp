@@ -280,11 +280,6 @@ void addNewProcess(const std::string& processName, int memorySize)
 {
     std::lock_guard<std::mutex> lock(mtx);
 
-    if (!hasEnoughFreeMemory(memorySize)) {
-        std::cerr << "Not enough memory to create process: " << processName << std::endl;
-        return;
-    }
-
     Process* p = new Process(processName);
     p->pid = pidCounter++;
 
@@ -372,9 +367,6 @@ void addNewProcess(const std::string& processName, int memorySize)
     allProcesses[p->name] = p;
     cv.notify_all(); 
 }
-
-
-
 
 void printSchedulerStatus(std::ostream& os)
 {

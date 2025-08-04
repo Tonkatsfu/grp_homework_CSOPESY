@@ -9,6 +9,9 @@
 #include <ctime>
 #include <cstdlib>
 #include <filesystem>
+#include <random>
+#include <sstream>
+#include <iomanip>
 
 namespace fs = std::filesystem;
 
@@ -179,3 +182,80 @@ void printMemoryStatus(int qq) {
     logFile << "----end----\n";
     logFile.close();
 }
+
+bool isAddressValid(int processID, int virtualAddress) {
+    int vpn = virtualAddress / memPerFrame;
+    auto& pageTable = pageTables[processID].pages;
+
+    // Check if the VPN exists and is marked valid
+    return pageTable.find(vpn) != pageTable.end() && pageTable[vpn].valid;
+}
+
+int getRandomValidAddress(int processID) {
+    if (pageTables.find(processID) == pageTables.end())
+        return -1; // Process doesn't exist
+
+    const auto& pages = pageTables[processID].pages;
+    std::vector<int> validVPNs;
+
+    for (const auto& [vpn, entry] : pages) {
+        if (entry.valid)
+            validVPNs.push_back(vpn);
+    }
+
+    if (validVPNs.empty())
+        return -1; // No valid pages
+
+    // Seed random engine
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> pagePicker(0, validVPNs.size() - 1);
+    std::uniform_int_distribution<> offsetPicker(0, memPerFrame - 2);  // uint16 = 2 bytes
+
+    int chosenVPN = validVPNs[pagePicker(gen)];
+    int offset = offsetPicker(gen);
+
+    return chosenVPN * memPerFrame + offset;
+}
+
+int getTotalMemory() {
+    return maxOverallMem;
+}
+
+int getConsumedMemory() {
+    int usedFrames = frameCount - freeFrameList.size();
+    return usedFrames * memPerFrame;
+}
+
+std::string getMemoryUsageReport() {
+    int total = getTotalMemory();
+    int used = getConsumedMemory();
+    std::ostringstream oss;
+    oss << "Memory Usage: " << used << " / " << total << " bytes (" 
+        << std::fixed << std::setprecision(2)
+        << (100.0 * used / total) << "% used)";
+    return oss.str();
+}
+
+int getMemoryUsedByProcess(int processID) {
+    if (pageTables.find(processID) == pageTables.end()) {
+        //std::cerr << "Process ID " << processID << " not found.\n";
+        return 0;
+    }
+
+    int pageCount = 0;
+    for (const auto& [vpn, entry] : pageTables[processID].pages) {
+        if (entry.valid) {
+            ++pageCount;
+        }
+    }
+
+    return pageCount * memPerFrame;
+}
+
+
+
+
+
+
+

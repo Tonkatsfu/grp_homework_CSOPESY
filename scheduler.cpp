@@ -77,7 +77,7 @@ void cpuWorker(int coreID)
                 int slice = 0;
                 bool wasRequeued = false;
 
-                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles) {
+                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles && p->finished == false) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -110,6 +110,11 @@ void cpuWorker(int coreID)
                         case OpCode::FOR:
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
                             break;
+                        case OpCode::WRITE:
+                            p->WRITE(getRandomValidAddress(p->pid), std::get<int>(instr.args[0]));
+                            break;
+                        case OpCode::READ:
+                            p->READ(std::get<std::string>(instr.args[0]), getRandomValidAddress(p->pid));
                     }
 
                     p->currentInstruction++;
@@ -132,7 +137,7 @@ void cpuWorker(int coreID)
 
             if (!wasRequeued) {
                 std::lock_guard<std::mutex> lock(mtx);
-                if (p->currentInstruction >= p->totalInstructions) {
+                if (p->currentInstruction >= p->totalInstructions || p->accessViolation == true) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     deallocateMemory(p->pid);
@@ -147,7 +152,7 @@ void cpuWorker(int coreID)
                 // FCFS
                 //std::cout << "scheduler is FCFS\n\n";
 
-                while (p->currentInstruction < p->totalInstructions) {
+                while (p->currentInstruction < p->totalInstructions && p->finished == false) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0)
                     {
@@ -180,12 +185,17 @@ void cpuWorker(int coreID)
                         case OpCode::FOR:
                             p->FOR_LOOP(std::get<int>(instr.args[0]), instr.nestedInstructions, coreID);
                             break;
+                        case OpCode::WRITE:
+                            p->WRITE(getRandomValidAddress(p->pid), std::get<int>(instr.args[0]));
+                            break;
+                        case OpCode::READ:
+                            p->READ(std::get<std::string>(instr.args[0]), getRandomValidAddress(p->pid));
                     }
                     p->currentInstruction++;
                 }
 
                 std::lock_guard<std::mutex> lock(mtx);
-                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions) {
+                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions || p->accessViolation == true) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     runningProcesses.erase(p->name);
@@ -291,7 +301,7 @@ void addNewProcess(const std::string& processName)
     p->totalInstructions = instructionCountDist(gen);
 
     // Available opcodes
-    std::vector<OpCode> opcodes = {OpCode::ADD, OpCode::SUBTRACT, OpCode::SLEEP, OpCode::PRINT, OpCode::FOR};
+    std::vector<OpCode> opcodes = {OpCode::ADD, OpCode::SUBTRACT, OpCode::SLEEP, OpCode::PRINT, OpCode::FOR, OpCode::WRITE, OpCode::READ};
     std::uniform_int_distribution<> opcodeDist(0, opcodes.size() - 1);
     std::uniform_int_distribution<> valueDist(1, 100);
     std::uniform_int_distribution<> sleepDist(3, 10);
@@ -303,6 +313,14 @@ void addNewProcess(const std::string& processName)
         OpCode opcode = opcodes[opcodeDist(gen)];
     
         switch (opcode) {
+            case OpCode::WRITE:
+                p->instructionList.push_back(Instruction(OpCode::WRITE, {valueDist(gen)}));
+                i++;
+                break;
+            case OpCode::READ:
+                p->instructionList.push_back(Instruction(OpCode::READ, {"x"}));
+                i++;
+                break;
             case OpCode::ADD:
                 p->instructionList.push_back(Instruction(OpCode::ADD, {"x", "x", valueDist(gen)}));
                 i++;
@@ -428,7 +446,7 @@ void printSchedulerStatus(std::ostream& os)
         for (auto p : finishedProcesses)
         {
             os << p->name << "\t(" << std::put_time(std::localtime(&p->startTime), "%m/%d/%Y %I:%M:%S%p")
-                      << ")\tFinished\t" << p->totalInstructions << "/" << p->totalInstructions << "\n";
+                      << ")\tFinished\t" << p->currentInstruction << "/" << p->totalInstructions << "\n";
         }
     }
 }
@@ -485,6 +503,17 @@ void stopDummyProcesses() {
         }
     }
 }
+
+Process* getProcessByPid(std::string targetPid) {
+    for (const auto& pair : finishedProcesses) {
+        if (pair && pair->name == targetPid) {
+            return pair;
+        }
+    }
+    return nullptr; // Not found
+}
+
+
 
 
 

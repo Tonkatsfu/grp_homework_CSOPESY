@@ -2,6 +2,8 @@
 #include <cstdlib>
 #include "scheduler.h"
 #include "initialize.h"
+#include "memory_manager.h"
+#include <iomanip>
 
 bool terminateProgram = false;
 bool isInitialized = false;
@@ -37,6 +39,22 @@ void printHeader()
     }
         */
 }
+
+void printProcessSMI() {
+    std::cout << "\nMemory Summary\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
+    std::cout << getMemoryUsageReport() << "\n";
+    std::cout << "-------------------------------------------------------------------------------------------------\n";
+    std::cout << std::left << std::setw(20) << "PID" << std::right << std::setw(80) << "Memory Usage (MiB)\n";
+
+    for (const auto& pair : allProcesses) {
+        std::cout << std::left << std::setw(20) << pair.first   // PID left-aligned in 20-character column
+                  << std::right << std::setw(70) << getMemoryUsedByProcess(pair.second->pid) << " MiB" << std::endl;
+    }
+
+    std::cout << "\n\n";
+}
+
 
 void processCommand(const std::string& command)
 {
@@ -125,7 +143,16 @@ void processCommand(const std::string& command)
 
         else
         {
-            std::cout << "No screen found with name: " << screenName << std::endl;
+            Process* p = getProcessByPid(screenName);
+            if(p != nullptr){
+                if(p->accessViolation == true){
+                    std::cout << p->accessViolationMessage << std::endl;
+                }else{
+                    std::cout << "No screen found with name: " << screenName << std::endl;
+                }
+            }else{
+                std::cout << "No screen found with name: " << screenName << std::endl;
+            }
         }
     }
 
@@ -144,7 +171,8 @@ void processCommand(const std::string& command)
         {
             ProcessSMI(currentScreenName);
         }else{
-            std:: cout << "You are currently not in a process screen, use screen -s <process name> to create one or screen -r <process name> to resume a process screen" << std::endl;
+            //std:: cout << "You are currently not in a process screen, use screen -s <process name> to create one or screen -r <process name> to resume a process screen" << std::endl;
+            printProcessSMI();
         }
     }
     else if (command == "report -util")

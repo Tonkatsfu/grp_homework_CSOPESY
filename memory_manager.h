@@ -42,5 +42,9 @@ uint16_t READ_MEMORY(int processID, int virtualAddress);
 void WRITE_MEMORY(int processID, int virtualAddress, uint16_t value);
 void printMemoryStatus(int qq);
 int handlePageFault(int processID, int virtualPageNum);
+bool isAddressValid(int processID, int virtualAddress);
+int getRandomValidAddress(int processID);
+std::string getMemoryUsageReport();
+int getMemoryUsedByProcess(int processID);
 
 #endif

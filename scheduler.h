@@ -20,6 +20,7 @@
 #include <variant>
 #include <cstdint>
 #include <algorithm>
+#include "memory_manager.h"
 using Arg = std::variant<std::string, int>;
 
 #ifdef _WIN32
@@ -28,7 +29,7 @@ using Arg = std::variant<std::string, int>;
 #include <sys/stat.h>  // for mkdir
 #endif
 
-enum class OpCode { ADD, SUBTRACT, SLEEP, PRINT, FOR };
+enum class OpCode { ADD, SUBTRACT, SLEEP, PRINT, FOR , WRITE, READ };
 
 struct Instruction {
     OpCode opcode;
@@ -60,6 +61,8 @@ struct Process
     bool isSleeping() const { return sleepTicksRemaining > 0; }
     std::vector<Instruction> instructionList;
     bool memoryAllocated = false; // Flag to check if memory is allocated for the process
+    bool accessViolation = false;
+    std::string accessViolationMessage = "";
 
 
     Process(const std::string& n) : name(n), startTime(std::time(nullptr))
@@ -73,6 +76,10 @@ struct Process
 
         std::string filePath = "process_logs/" + name + "_log.txt";
         logFile.open(filePath, std::ios::out);
+
+        int defaultAddress = 0x1000;
+        std::string defaultVar = "init_var";
+        //READ(defaultVar, defaultAddress);
     }
 
     ~Process() {
@@ -97,6 +104,56 @@ struct Process
             }
             logFile.flush();
         }
+    }
+
+    void READ(std::string var, int address){
+
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        char buffer[80];
+        strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
+        std::ostringstream oss;
+
+        if(isAddressValid(pid, address)){
+            uint16_t value = READ_MEMORY(pid, address);
+
+            oss << "[" << buffer << "] Core " << pid << ": Retrieved value "<< value << " from memory\n";
+            logs.push_back(oss.str());
+            logFile << "[" << buffer << "] Core " << pid << ": Retrieved value "<< value << " from memory\n";
+
+            DECLARE(var, value, pid);
+        }else{
+            oss << "Process " << name << " shut down prematurely due to memory access violation error that occured at " << buffer << ". Address 0x" << std::hex << address << " invalid.\n";
+            logs.push_back(oss.str());
+            logFile << "[" << buffer << "] Core " << pid << ": Invalid memory access terminating process\n";
+            accessViolationMessage = oss.str();
+            accessViolation = true;
+            //finished = true;
+        }
+
+        logFile.flush();
+    }
+
+    void WRITE(int address, uint16_t value){
+        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+        char buffer[80];
+        strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
+        std::ostringstream oss;
+
+        if(isAddressValid(pid, address)){
+            WRITE_MEMORY(pid, address, value);
+
+            oss << "[" << buffer << "] Core " << pid << ": Wrote "<< value << " to memory address " << std::hex << address << "\n";
+            logs.push_back(oss.str());
+            logFile << "[" << buffer << "] Core " << pid << ": Wrote "<< value << " to memory address " << address << "\n";
+        }else{
+            oss << "Process " << name << " shut down prematurely due to memory access violation error that occured at " << buffer << ". Address 0x" << std::hex << address << " invalid.\n";
+            logs.push_back(oss.str());
+            logFile << "[" << buffer << "] Core " << pid << ": Invalid memory access terminating process\n";
+            accessViolationMessage = oss.str();
+            accessViolation = true;
+        }
+
+        logFile.flush();
     }
 
     void DECLARE(std::string var, int value, int coreID){
@@ -283,6 +340,7 @@ extern std::atomic <bool> generateProcess;
 extern int processGenerationIntervalTicks;
 extern std::mutex mtx;
 extern bool initialized;
+extern std::vector<Process*> finishedProcesses;
 
 
 void startScheduler();
@@ -292,5 +350,6 @@ void printSchedulerStatus(std::ostream& os);
 void dummyProcessGenerator();
 void startDummyProcesses();
 void stopDummyProcesses();
+Process* getProcessByPid(std::string targetPid);
 
 #endif

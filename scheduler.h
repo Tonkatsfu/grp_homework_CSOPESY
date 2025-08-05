@@ -109,32 +109,33 @@ struct Process
         }
     }
 
-    void READ(std::string var, int address){
+    void READ(std::string var, int address) {
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
+    std::ostringstream oss;
 
-        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        char buffer[80];
-        strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
-        std::ostringstream oss;
+    if (isAddressValid(pid, address)) {
+        uint16_t value = READ_MEMORY(pid, address);
 
-        if(isAddressValid(pid, address)){
-            uint16_t value = READ_MEMORY(pid, address);
+        oss << "[" << buffer << "] Core " << pid << ": Retrieved value " << value << " from memory\n";
+        logs.push_back(oss.str());
+        logFile << oss.str();
 
-            oss << "[" << buffer << "] Core " << pid << ": Retrieved value "<< value << " from memory\n";
-            logs.push_back(oss.str());
-            logFile << "[" << buffer << "] Core " << pid << ": Retrieved value "<< value << " from memory\n";
-
-            DECLARE(var, value, pid);
-        }else{
-            oss << "Process " << name << " shut down prematurely due to memory access violation error that occured at " << buffer << ". Address 0x" << std::hex << address << " invalid.\n";
-            logs.push_back(oss.str());
-            logFile << "[" << buffer << "] Core " << pid << ": Invalid memory access terminating process\n";
-            accessViolationMessage = oss.str();
-            accessViolation = true;
-            //finished = true;
-        }
-
-        logFile.flush();
+        // Store directly into variables (ensures PRINT will see it)
+        variables[var] = value;  
+    } else {
+        oss << "Process " << name << " shut down prematurely due to memory access violation error that occurred at " 
+            << buffer << ". Address 0x" << std::hex << address << " invalid.\n";
+        logs.push_back(oss.str());
+        logFile << "[" << buffer << "] Core " << pid << ": Invalid memory access terminating process\n";
+        accessViolationMessage = oss.str();
+        accessViolation = true;
     }
+
+    logFile.flush();
+}
+
 
     void WRITE(int address, uint16_t value){
         auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
@@ -159,25 +160,22 @@ struct Process
         logFile.flush();
     }
 
-    void DECLARE(std::string var, int value, int coreID){
-        auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
-        char buffer[80];
-        strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
-        std::ostringstream oss;
+    void DECLARE(std::string var, int value, int coreID) {
+    auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%m/%d/%Y %I:%M:%S %p", std::localtime(&now));
+    std::ostringstream oss;
 
-        if(variables.find(var) == variables.end()){
-            variables[var] = value;
+    variables[var] = value; 
 
-            oss << "[" << buffer << "] Core " << coreID << ": Variable " << var << " with value " << value << " successfully declared \n";
-            logs.push_back(oss.str());
-            logFile << "[" << buffer << "] Core " << coreID << ": Variable " << var << " with value " << value << " successfully declared \n";
-        }else{
-            oss << "[" << buffer << "] Core " << coreID << ": Variable " << var << " with value " << value << " was unsuccesfull in declaration \n";
-            logs.push_back(oss.str());
-        }
+    oss << "[" << buffer << "] Core " << coreID << ": Variable " << var 
+        << " set to value " << value << "\n";
+    logs.push_back(oss.str());
+    logFile << oss.str();
 
-        logFile.flush();
-    }
+    logFile.flush();
+}
+
 
     void ADD(Arg var1, Arg var2, Arg var3, int coreID) {
         if (!std::holds_alternative<std::string>(var1)) {

@@ -2105,3 +2105,468 @@ Process 14:
 Process 15:
   VPN: 0, Frame: 0
 ----end----
+Timestamp: 08/05/2025 07:45:11 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 07:46:33 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 07:53:26 PM
+Processes in memory: 169
+Used Frames: 0/1024
+Free Frames: 1024
+
+Process 0:
+
+Process 2:
+
+Process 8:
+
+Process 11:
+
+Process 15:
+
+Process 16:
+
+Process 19:
+
+Process 25:
+
+Process 26:
+
+Process 34:
+
+Process 36:
+
+Process 37:
+
+Process 38:
+
+Process 41:
+
+Process 43:
+
+Process 47:
+
+Process 48:
+
+Process 49:
+
+Process 51:
+
+Process 52:
+
+Process 55:
+
+Process 59:
+
+Process 60:
+
+Process 64:
+
+Process 65:
+
+Process 67:
+
+Process 68:
+
+Process 73:
+
+Process 75:
+
+Process 76:
+
+Process 77:
+
+Process 78:
+
+Process 79:
+
+Process 82:
+
+Process 86:
+
+Process 90:
+
+Process 91:
+
+Process 92:
+
+Process 95:
+
+Process 96:
+
+Process 99:
+
+Process 103:
+
+Process 111:
+
+Process 119:
+
+Process 120:
+
+Process 123:
+
+Process 124:
+
+Process 126:
+
+Process 127:
+
+Process 131:
+
+Process 133:
+
+Process 135:
+
+Process 137:
+
+Process 139:
+
+Process 140:
+
+Process 142:
+
+Process 145:
+
+Process 146:
+
+Process 150:
+
+Process 151:
+
+Process 152:
+
+Process 153:
+
+Process 156:
+
+Process 159:
+
+Process 165:
+
+Process 168:
+
+Process 169:
+
+Process 171:
+
+Process 172:
+
+Process 173:
+
+Process 176:
+
+Process 177:
+
+Process 178:
+
+Process 179:
+
+Process 185:
+
+Process 187:
+
+Process 188:
+
+Process 189:
+
+Process 192:
+
+Process 193:
+
+Process 195:
+
+Process 196:
+
+Process 197:
+
+Process 199:
+
+Process 200:
+
+Process 204:
+
+Process 205:
+
+Process 207:
+
+Process 211:
+
+Process 212:
+
+Process 213:
+
+Process 214:
+
+Process 215:
+
+Process 216:
+
+Process 217:
+
+Process 219:
+
+Process 222:
+
+Process 224:
+
+Process 225:
+
+Process 226:
+
+Process 228:
+
+Process 232:
+
+Process 233:
+
+Process 234:
+
+Process 239:
+
+Process 241:
+
+Process 242:
+
+Process 244:
+
+Process 245:
+
+Process 248:
+
+Process 249:
+
+Process 252:
+
+Process 257:
+
+Process 258:
+
+Process 259:
+
+Process 262:
+
+Process 267:
+
+Process 268:
+
+Process 270:
+
+Process 272:
+
+Process 273:
+
+Process 274:
+
+Process 276:
+
+Process 281:
+
+Process 282:
+
+Process 283:
+
+Process 285:
+
+Process 287:
+
+Process 290:
+
+Process 293:
+
+Process 295:
+
+Process 297:
+
+Process 298:
+
+Process 299:
+
+Process 302:
+
+Process 304:
+
+Process 305:
+
+Process 309:
+
+Process 310:
+
+Process 312:
+
+Process 321:
+
+Process 323:
+
+Process 326:
+
+Process 327:
+
+Process 328:
+
+Process 329:
+
+Process 330:
+
+Process 331:
+
+Process 332:
+
+Process 336:
+
+Process 338:
+
+Process 339:
+
+Process 341:
+
+Process 343:
+
+Process 344:
+
+Process 345:
+
+Process 346:
+
+Process 349:
+
+Process 351:
+
+Process 352:
+
+Process 353:
+
+Process 354:
+
+Process 355:
+
+Process 357:
+
+Process 358:
+
+Process 359:
+
+Process 360:
+
+Process 361:
+
+Process 362:
+----end----
+Timestamp: 08/05/2025 08:53:45 PM
+Processes in memory: 1
+Used Frames: 1/1
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 09:13:19 PM
+Processes in memory: 1
+Used Frames: 1/1
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 0
+----end----

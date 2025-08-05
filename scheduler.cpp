@@ -621,9 +621,11 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
                 while (std::getline(expr, part, '+')) {
                     part = trim(part);
                     if (!part.empty() && part.front() == '"' && part.back() == '"') {
-                        printArgs.emplace_back(part.substr(1, part.size() - 2)); // string literal
+                        // String literal (strip quotes)
+                        printArgs.emplace_back(part.substr(1, part.size() - 2));
                     } else {
-                        printArgs.emplace_back(part); // variable name
+                        // Variable name (no quotes, trimmed)
+                        printArgs.emplace_back(trim(part));
                     }
                 }
 
@@ -639,6 +641,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
         }
     }
 }
+
 
 void executeInstructions(Process* process) {
     for (auto& instr : process->instructionList) {
@@ -671,7 +674,8 @@ void executeInstructions(Process* process) {
                     std::holds_alternative<int>(instr.args[0]) &&
                     std::holds_alternative<std::string>(instr.args[1])) 
                 {
-                    process->WRITE(std::get<int>(instr.args[0]), process->variables[std::get<std::string>(instr.args[1])]);
+                    std::string varName = trim(std::get<std::string>(instr.args[1]));
+                    process->WRITE(std::get<int>(instr.args[0]), process->variables[varName]);
                 } else {
                     std::cerr << "Error: WRITE missing arguments\n";
                 }
@@ -683,7 +687,8 @@ void executeInstructions(Process* process) {
                     std::holds_alternative<std::string>(instr.args[0]) &&
                     std::holds_alternative<int>(instr.args[1])) 
                 {
-                    process->READ(std::get<std::string>(instr.args[0]), std::get<int>(instr.args[1]));
+                    std::string varName = trim(std::get<std::string>(instr.args[0]));
+                    process->READ(varName, std::get<int>(instr.args[1]));
                 } else {
                     std::cerr << "Error: READ missing arguments\n";
                 }
@@ -691,29 +696,36 @@ void executeInstructions(Process* process) {
 
             // PRINT
             case OpCode::PRINT: {
-                std::string result;
-                for (auto& arg : instr.args) {
-                    if (std::holds_alternative<std::string>(arg)) {
-                        std::string val = std::get<std::string>(arg);
-                        // Check if it's a variable name
-                        if (process->variables.find(val) != process->variables.end()) {
-                            result += std::to_string(process->variables[val]);
-                        }
-                        // Otherwise treat as literal
-                        else {
-                            result += val;
-                        }
-                    }
-                    else if (std::holds_alternative<int>(arg)) {
-                        result += std::to_string(std::get<int>(arg));
-                    }
-                }
-                process->logPrintCommand(process->pid, result);
-                break;
+    std::string result;
+    for (auto& arg : instr.args) {
+        if (std::holds_alternative<std::string>(arg)) {
+            std::string val = trim(std::get<std::string>(arg));
+
+            // Remove quotes if present
+            if (!val.empty() && val.front() == '"' && val.back() == '"') {
+                val = val.substr(1, val.size() - 2);
             }
+
+            // Check if variable exists
+            if (process->variables.find(val) != process->variables.end()) {
+                result += std::to_string(process->variables[val]);
+            } else {
+                result += val; // Literal
+            }
+        }
+        else if (std::holds_alternative<int>(arg)) {
+            result += std::to_string(std::get<int>(arg));
+        }
+    }
+    process->logPrintCommand(process->pid, result);
+    break;
+}
+
+
         }
     }
 }
+
 
 
 

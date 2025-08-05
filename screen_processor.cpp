@@ -13,7 +13,7 @@ void ScreenConsoles(const Process& process)
 #endif
 
     std::cout << "\n\033[36m--- Process name: " << process.name << " ---\033[0m\n";
-    std::cout << "ID: " << process.pid << "\n";
+    std::cout << "ID: " << process.pid << " Memory: " << process.memorySize << "\n";
 }
 
 void ProcessSMI(const std::string& processName) {

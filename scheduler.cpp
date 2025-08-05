@@ -295,7 +295,8 @@ void addNewProcess(const std::string& processName, int memorySize)
 
     Process* p = new Process(processName);
     p->pid = pidCounter++;
-
+    p->memorySize = memorySize;
+    
     // Set up random number generators
     std::random_device rd;
     std::mt19937 gen(rd());

@@ -52,6 +52,7 @@ struct Process
     int totalInstructions = 100;
     int currentInstruction = 0;
     int assignedCoreID = -1;
+    int memorySize = 0;
     std:: time_t startTime;
     bool finished = false;
     std::vector<std::string> logs;

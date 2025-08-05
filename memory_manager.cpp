@@ -1,4 +1,6 @@
 #include "memory_manager.h"
+#include "cpu_tick_global.h"
+
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -262,13 +264,14 @@ int getMemoryUsedByProcess(int processID) {
     return pageCount * memPerFrame;
 }
 
-unsigned long getIdleCpuTicks() {
-    return idleCpuTicks;
+unsigned long getIdleCpuTicks() { 
+    return globalCpuTicker ? globalCpuTicker->getIdleTicks() : 0;
 }
 
 unsigned long getActiveCpuTicks() {
-    return activeCpuTicks;
+    return globalCpuTicker ? globalCpuTicker->getActiveTicks() : 0;
 }
+
 
 unsigned long getNumPagesPagedIn() {
     return numPagedIn;
@@ -277,9 +280,3 @@ unsigned long getNumPagesPagedIn() {
 unsigned long getNumPagesPagedOut() {
     return numPagedOut;
 }
-
-
-
-
-
-

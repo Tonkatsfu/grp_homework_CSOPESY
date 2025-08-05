@@ -1829,3 +1829,268 @@ Process 15:
 
 Process 16:
 ----end----
+Timestamp: 08/05/2025 03:07:19 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 03:15:46 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 03:45:05 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 03:51:54 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----
+Timestamp: 08/05/2025 03:55:02 PM
+Processes in memory: 16
+Used Frames: 16/16
+Free Frames: 0
+
+Process 0:
+  VPN: 0, Frame: 15
+
+Process 1:
+  VPN: 0, Frame: 14
+
+Process 2:
+  VPN: 0, Frame: 13
+
+Process 3:
+  VPN: 0, Frame: 12
+
+Process 4:
+  VPN: 0, Frame: 11
+
+Process 5:
+  VPN: 0, Frame: 10
+
+Process 6:
+  VPN: 0, Frame: 9
+
+Process 7:
+  VPN: 0, Frame: 8
+
+Process 8:
+  VPN: 0, Frame: 7
+
+Process 9:
+  VPN: 0, Frame: 6
+
+Process 10:
+  VPN: 0, Frame: 5
+
+Process 11:
+  VPN: 0, Frame: 4
+
+Process 12:
+  VPN: 0, Frame: 3
+
+Process 13:
+  VPN: 0, Frame: 2
+
+Process 14:
+  VPN: 0, Frame: 1
+
+Process 15:
+  VPN: 0, Frame: 0
+----end----

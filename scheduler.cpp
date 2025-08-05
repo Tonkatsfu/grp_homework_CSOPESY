@@ -49,29 +49,38 @@ static std::string trim(const std::string& s) {
 
 void cpuWorker(int coreID)
 {
-    while(true)
+    while (true)
     {
         Process* p = nullptr;
         {
-            std::unique_lock<std::mutex> lock(mtx);
-            cv.wait(lock, [] { return !readyQueue.empty() || !initialized; });
+        std::unique_lock<std::mutex> lock(mtx);
 
-            if (!initialized && readyQueue.empty()) {
-                return;
-            }
-
-            if (!readyQueue.empty())
-            {
-                p = readyQueue.front();
-                readyQueue.pop();
-                p->assignedCoreID = coreID;
-                runningProcesses[p->name] = p;
-            }
+        if (readyQueue.empty() && initialized) {
+            if (globalCpuTicker) globalCpuTicker->incIdleTicks(); // increment each loop when idle
+            cv.wait(lock, [] {
+                return !readyQueue.empty() || !initialized;
+            });
+        } else {
+            cv.wait(lock, [] {
+                return !readyQueue.empty() || !initialized;
+            });
         }
+
+        if (!initialized && readyQueue.empty()) {
+            return;
+        }
+
+        if (!readyQueue.empty()) {
+            p = readyQueue.front();
+            readyQueue.pop();
+            p->assignedCoreID = coreID;
+            runningProcesses[p->name] = p;
+        }
+    }
 
         if (p)
         {
-            if (p && !p->memoryAllocated)
+            if (!p->memoryAllocated)
             {
                 if (!allocateMemory(p->pid, minMemPerProc))
                 {
@@ -88,7 +97,10 @@ void cpuWorker(int coreID)
                 int slice = 0;
                 bool wasRequeued = false;
 
-                while (p->currentInstruction < p->totalInstructions && slice < quantumCycles && p->finished == false) {
+                while (p->currentInstruction < p->totalInstructions && 
+                       slice < quantumCycles && 
+                       !p->finished) 
+                {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
                     if (delayPerExec == 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -97,7 +109,6 @@ void cpuWorker(int coreID)
 
                     if (p->sleepTicksRemaining > 0) {
                         p->sleepTicksRemaining--;
-
                         std::lock_guard<std::mutex> lock(mtx);
                         readyQueue.push(p);
                         runningProcesses.erase(p->name);
@@ -105,7 +116,8 @@ void cpuWorker(int coreID)
                         break;
                     }
 
-                     switch (instr.opcode) {
+                    // Execute instruction
+                    switch (instr.opcode) {
                         case OpCode::ADD:
                             p->ADD(instr.args[0], instr.args[1], instr.args[2], coreID);
                             break;
@@ -128,6 +140,7 @@ void cpuWorker(int coreID)
                             p->READ(std::get<std::string>(instr.args[0]), getRandomValidAddress(p->pid));
                     }
 
+                    if (globalCpuTicker) globalCpuTicker->incActiveTicks(); // ACTIVE TICKS
                     p->currentInstruction++;
                     slice++;
 
@@ -138,42 +151,37 @@ void cpuWorker(int coreID)
                         wasRequeued = true;
                         break;
                     }
-
-            }
-
-            if (coreID == 0) {  // Only core 0 is allowed to log otherwise other threads will also log the memory status
-                std::lock_guard<std::mutex> logLock(sliceLogMutex);
-                printMemoryStatus(globalSliceCounter++);
-            }
-
-            if (!wasRequeued) {
-                std::lock_guard<std::mutex> lock(mtx);
-                if (p->currentInstruction >= p->totalInstructions || p->accessViolation == true) {
-                    p->finished = true;
-                    finishedProcesses.push_back(p);
-                    deallocateMemory(p->pid);
-                    p->memoryAllocated = false;
-                } else {
-                    readyQueue.push(p);
                 }
-                runningProcesses.erase(p->name);
+
+                if (coreID == 0) {  
+                    std::lock_guard<std::mutex> logLock(sliceLogMutex);
+                    printMemoryStatus(globalSliceCounter++);
+                }
+
+                if (!wasRequeued) {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    if (p->currentInstruction >= p->totalInstructions || p->accessViolation) {
+                        p->finished = true;
+                        finishedProcesses.push_back(p);
+                        deallocateMemory(p->pid);
+                        p->memoryAllocated = false;
+                    } else {
+                        readyQueue.push(p);
+                    }
+                    runningProcesses.erase(p->name);
+                }
             }
-        }
             else {
                 // FCFS
-                //std::cout << "scheduler is FCFS\n\n";
-
-                while (p->currentInstruction < p->totalInstructions && p->finished == false) {
+                while (p->currentInstruction < p->totalInstructions && !p->finished) {
                     std::this_thread::sleep_for(std::chrono::milliseconds(delayPerExec));
-                    if (delayPerExec == 0)
-                    {
+                    if (delayPerExec == 0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(1)); 
                     }
                     const Instruction& instr = p->instructionList[p->currentInstruction];
 
-                    if(p->sleepTicksRemaining > 0){
+                    if (p->sleepTicksRemaining > 0) {
                         p->sleepTicksRemaining--;
-
                         std::lock_guard<std::mutex> lock(mtx);
                         readyQueue.push(p);
                         runningProcesses.erase(p->name);
@@ -202,23 +210,25 @@ void cpuWorker(int coreID)
                         case OpCode::READ:
                             p->READ(std::get<std::string>(instr.args[0]), getRandomValidAddress(p->pid));
                     }
+
+                    if (globalCpuTicker) globalCpuTicker->incActiveTicks(); // ACTIVE TICKS
                     p->currentInstruction++;
                 }
 
                 std::lock_guard<std::mutex> lock(mtx);
-                if (p->sleepTicksRemaining == 0 && p->currentInstruction >= p->totalInstructions || p->accessViolation == true) {
+                if (p->sleepTicksRemaining == 0 && 
+                    (p->currentInstruction >= p->totalInstructions || p->accessViolation)) {
                     p->finished = true;
                     finishedProcesses.push_back(p);
                     runningProcesses.erase(p->name);
                     deallocateMemory(p->pid);
                     p->memoryAllocated = false;
                 }
-            
-
             }
         }
     }
 }
+
 
 void startCpuWorkers()
 {
@@ -277,24 +287,6 @@ void stopScheduler()
         }
     }
 }
-
-/*
-void addNewProcess(const std::string& processName)
-{
-    std::lock_guard<std::mutex> lock(mtx);
-    Process* p = new Process(processName);
-    p->pid = pidCounter++;
-
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> dist(minIns, maxIns);
-    p->totalInstructions = dist(gen);
-
-    readyQueue.push(p);
-    allProcesses[p->name] = p;
-    cv.notify_all(); 
-}
-    */
 
     
 void addNewProcess(const std::string& processName, int memorySize)
@@ -572,7 +564,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
         std::string cmd;
         parts >> cmd;
 
-        // --- DECLARE ---
+        // DECLARE
         if (cmd == "DECLARE") {
             std::string var; 
             int value;
@@ -583,7 +575,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
             }
         } 
 
-        // --- ADD ---
+        // ADD
         else if (cmd == "ADD") {
             std::string v1, v2, v3;
             if (parts >> v1 >> v2 >> v3) {
@@ -593,7 +585,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
             }
         }
 
-        // --- WRITE ---
+        // WRITE 
         else if (cmd == "WRITE") {
             int addr; 
             std::string var;
@@ -604,7 +596,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
             }
         }
 
-        // --- READ ---
+        // READ 
         else if (cmd == "READ") {
             std::string var; 
             int addr;
@@ -615,7 +607,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
             }
         }
 
-        // --- PRINT ---
+        // PRINT
         else if (cmd == "PRINT" || cmd.rfind("PRINT(", 0) == 0) {
             auto start = token.find('(');
             auto end = token.rfind(')');
@@ -641,7 +633,7 @@ void parseInstructions(const std::string& input, std::vector<Instruction>& outpu
             }
         }
 
-        // --- UNKNOWN ---
+        // UNKNOWN 
         else {
             std::cerr << "Unknown instruction: " << token << "\n";
         }

@@ -221,7 +221,7 @@ int getRandomValidAddress(int processID) {
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> pagePicker(0, validVPNs.size() - 1);
-    std::uniform_int_distribution<> offsetPicker(0, memPerFrame - 2);  // uint16 = 2 bytes
+    std::uniform_int_distribution<> offsetPicker(0, memPerFrame - 2);  
 
     int chosenVPN = validVPNs[pagePicker(gen)];
     int offset = offsetPicker(gen);

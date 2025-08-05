@@ -1,4 +1,5 @@
 #include "menu_processor.h"
+#include "cpu_tick_global.h"
 #include <cstdlib>
 #include "scheduler.h"
 #include "initialize.h"
@@ -35,10 +36,9 @@ void printProcessSMI()
     std::cout << getMemoryUsageReport() << "\n";
     std::cout << "-------------------------------------------------------------------------------------------------\n";
     std::cout << "\033[34m"  
-          << std::left << std::setw(20) << "PID"
-          << std::right << std::setw(80) << "Memory Usage (MiB)"
-          << "\033[0m\n";
-
+              << std::left << std::setw(20) << "PID"
+              << std::right << std::setw(80) << "Memory Usage (MiB)"
+              << "\033[0m\n";
 
     for (const auto& pair : allProcesses)
     {
@@ -57,20 +57,18 @@ void processCommand(const std::string& command)
         {
             printSchedulerStatus(std::cout);
         }
-
         else if (command == "clear")
         {
-    #ifdef _WIN32
+#ifdef _WIN32
             system("cls");
-    #else
+#else
             system("clear");
-    #endif
+#endif
             if (currentScreenName.empty())
                 printHeader();
             else
                 ScreenConsoles(*allProcesses[currentScreenName]);
         }
-
         else if (command == "exit")
         {
             if (currentScreenName.empty())
@@ -84,15 +82,14 @@ void processCommand(const std::string& command)
             {
                 std::cout << "Returning to main menu." << std::endl;
                 currentScreenName = "";
-    #ifdef _WIN32
+#ifdef _WIN32
                 system("cls");
-    #else
+#else
                 system("clear");
-    #endif
+#endif
                 printHeader();
             }
         }
-
         else if (command.rfind("screen -s ", 0) == 0)
         {
             std::string args = command.substr(10);
@@ -149,7 +146,6 @@ void processCommand(const std::string& command)
                 }
             }
         }
-
         else if (command.rfind("screen -r ", 0) == 0)
         {
             std::string screenName = command.substr(10);
@@ -180,116 +176,105 @@ void processCommand(const std::string& command)
                 }
             }
         }
-
         else if (command.rfind("screen -c ", 0) == 0)
-{
-    std::string args = command.substr(10);
-    size_t firstSpace = args.find(' ');
-    if (firstSpace == std::string::npos)
-    {
-        std::cout << "Missing memory size. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
-        return;
-    }
-
-    std::string processName = args.substr(0, firstSpace);
-    args = args.substr(firstSpace + 1);
-
-    size_t secondSpace = args.find(' ');
-    if (secondSpace == std::string::npos)
-    {
-        std::cout << "Missing instructions. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
-        return;
-    }
-
-    std::string memStr = args.substr(0, secondSpace);
-    std::string instructions = args.substr(secondSpace + 1);
-
-    int memorySize;
-    try
-    {
-        memorySize = std::stoi(memStr);
-    }
-    catch (...)
-    {
-        std::cout << "Invalid memory size. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
-        return;
-    }
-
-    if (memorySize < 64 || memorySize > 65536)
-    {
-        std::cout << "Memory must be between 64 and 65536." << std::endl;
-        return;
-    }
-
-    // Trim spaces around instructions
-    auto trim = [](std::string &s) {
-        s.erase(0, s.find_first_not_of(" \t\n\r"));
-        s.erase(s.find_last_not_of(" \t\n\r") + 1);
-    };
-    trim(instructions);
-
-    // Safely strip surrounding quotes if present
-    if (instructions.size() >= 2 &&
-        instructions.front() == '"' &&
-        instructions.back() == '"')
-    {
-        instructions = instructions.substr(1, instructions.size() - 2);
-    }
-
-    size_t instrCount = std::count(instructions.begin(), instructions.end(), ';') + 1;
-    if (instrCount < 1 || instrCount > 50)
-    {
-        std::cout << "Invalid command: Instruction count must be between 1 and 50." << std::endl;
-        return;
-    }
-
-    if (allProcesses[processName] != nullptr && !allProcesses[processName]->finished)
-    {
-        std::cout << "Screen " << processName << " already exists. Use screen -r instead.\n";
-    }
-    else
-    {
-        currentScreenName = processName;
-        addNewProcess(processName, memorySize);
-
-        if (allProcesses.count(processName) && allProcesses[processName] != nullptr)
         {
-            // Store instructions
-            allProcesses[processName]->userInstructions = instructions;
+            std::string args = command.substr(10);
+            size_t firstSpace = args.find(' ');
+            if (firstSpace == std::string::npos)
+            {
+                std::cout << "Missing memory size. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
+                return;
+            }
 
-            parseInstructions(
-                allProcesses[processName]->userInstructions,
-                allProcesses[processName]->instructionList
-            );
+            std::string processName = args.substr(0, firstSpace);
+            args = args.substr(firstSpace + 1);
 
-            executeInstructions(allProcesses[processName]);
+            size_t secondSpace = args.find(' ');
+            if (secondSpace == std::string::npos)
+            {
+                std::cout << "Missing instructions. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
+                return;
+            }
 
-            // Launch process console
-            ScreenConsoles(*allProcesses[processName]);
+            std::string memStr = args.substr(0, secondSpace);
+            std::string instructions = args.substr(secondSpace + 1);
+
+            int memorySize;
+            try
+            {
+                memorySize = std::stoi(memStr);
+            }
+            catch (...)
+            {
+                std::cout << "Invalid memory size. Usage: screen -c <name> <memory> \"<instructions>\"" << std::endl;
+                return;
+            }
+
+            if (memorySize < 64 || memorySize > 65536)
+            {
+                std::cout << "Memory must be between 64 and 65536." << std::endl;
+                return;
+            }
+
+            auto trim = [](std::string &s) {
+                s.erase(0, s.find_first_not_of(" \t\n\r"));
+                s.erase(s.find_last_not_of(" \t\n\r") + 1);
+            };
+            trim(instructions);
+
+            if (instructions.size() >= 2 &&
+                instructions.front() == '"' &&
+                instructions.back() == '"')
+            {
+                instructions = instructions.substr(1, instructions.size() - 2);
+            }
+
+            size_t instrCount = std::count(instructions.begin(), instructions.end(), ';') + 1;
+            if (instrCount < 1 || instrCount > 50)
+            {
+                std::cout << "Invalid command: Instruction count must be between 1 and 50." << std::endl;
+                return;
+            }
+
+            if (allProcesses[processName] != nullptr && !allProcesses[processName]->finished)
+            {
+                std::cout << "Screen " << processName << " already exists. Use screen -r instead.\n";
+            }
+            else
+            {
+                currentScreenName = processName;
+                addNewProcess(processName, memorySize);
+
+                if (allProcesses.count(processName) && allProcesses[processName] != nullptr)
+                {
+                    allProcesses[processName]->userInstructions = instructions;
+
+                    parseInstructions(
+                        allProcesses[processName]->userInstructions,
+                        allProcesses[processName]->instructionList
+                    );
+
+                    executeInstructions(allProcesses[processName]);
+                    ScreenConsoles(*allProcesses[processName]);
+                }
+                else
+                {
+                    std::cout << "Failed to create process: " << processName << std::endl;
+                }
+            }
         }
-        else
-        {
-            std::cout << "Failed to create process: " << processName << std::endl;
-        }
-    }
-}
-
-
         else if (command == "scheduler -start")
         {
             startDummyProcesses();
         }
-
         else if (command == "scheduler -stop")
         {
             stopDummyProcesses();
         }
-
         else if (command == "vmstat")
         {
             printVMStat();
         }
-
         else if (command == "process-smi")
         {
             if (currentScreenName != "")
@@ -301,7 +286,6 @@ void processCommand(const std::string& command)
                 printProcessSMI();
             }
         }
-
         else if (command == "report -util")
         {
             std::lock_guard<std::mutex> logLock(logFileMutex);
@@ -322,7 +306,6 @@ void processCommand(const std::string& command)
                 std::cout << "Failed to open csopesy-log.txt for writing." << std::endl;
             }
         }
-
         else
         {
             std::cout << "Please enter a valid command." << std::endl;
@@ -333,6 +316,9 @@ void processCommand(const std::string& command)
         if (command == "initialize")
         {
             initialize();
+            initializeMemoryManager();
+            globalCpuTicker->start();   
+            startScheduler();           
             isInitialized = true;
         }
         else if (command == "exit")

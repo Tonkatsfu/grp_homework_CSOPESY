@@ -29,19 +29,19 @@ using Arg = std::variant<std::string, int>;
 #include <sys/stat.h>  // for mkdir
 #endif
 
-enum class OpCode { ADD, SUBTRACT, SLEEP, PRINT, FOR , WRITE, READ };
+enum class OpCode { DECLARE, ADD, SUBTRACT, SLEEP, PRINT, FOR , WRITE, READ };
 
 struct Instruction {
     OpCode opcode;
     std::vector<Arg> args;
     std::vector<Instruction> nestedInstructions;
 
-    Instruction(OpCode op, std::initializer_list<Arg> arguments)
-        : opcode(op), args(arguments) {}
-    
-    // Constructor for FOR loops
-    Instruction(OpCode op, std::initializer_list<Arg> arguments, std::vector<Instruction> nested)
-        : opcode(op), args(arguments), nestedInstructions(std::move(nested)) {}
+    Instruction(OpCode op, std::vector<Arg> arguments, std::vector<Instruction> nested = {})
+        : opcode(op), args(std::move(arguments)), nestedInstructions(std::move(nested)) {}
+
+    template<typename... Args>
+    Instruction(OpCode op, Args&&... arguments)
+        : opcode(op), args{ Arg(std::forward<Args>(arguments))... } {}
 };
 
 
@@ -332,6 +332,24 @@ struct Process
         }
     }
 }
+
+void PRINT(const std::vector<Arg>& args, int coreID) {
+    std::ostringstream oss;
+    for (const auto& arg : args) {
+        if (std::holds_alternative<std::string>(arg)) {
+            std::string token = std::get<std::string>(arg);
+            if (variables.find(token) != variables.end()) {
+                oss << variables[token];
+            } else {
+                oss << token;
+            }
+        } else {
+            oss << std::get<int>(arg);
+        }
+    }
+    logPrintCommand(coreID, oss.str());
+}
+
 };
 
 
@@ -355,5 +373,7 @@ void startDummyProcesses();
 void stopDummyProcesses();
 Process* getProcessByPid(std::string targetPid);
 void printVMStat();
+void parseInstructions(const std::string& input, std::vector<Instruction>& output);
+void executeInstructions(Process* process);
 
 #endif

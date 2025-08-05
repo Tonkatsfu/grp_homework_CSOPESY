@@ -35,6 +35,17 @@ int processGenerationIntervalTicks = 5000;
 std::atomic<int> globalSliceCounter = 0;
 std::mutex sliceLogMutex;
 
+static std::string trim(const std::string& s) {
+    auto start = s.begin();
+    while (start != s.end() && std::isspace(*start)) {
+        start++;
+    }
+    auto end = s.end();
+    do {
+        end--;
+    } while (std::distance(start, end) > 0 && std::isspace(*end));
+    return std::string(start, end + 1);
+}
 
 void cpuWorker(int coreID)
 {
@@ -546,4 +557,172 @@ void printVMStat() {
     std::cout << "+------------------------+------------------------+\n";
     std::cout << std::endl; 
 }
+
+void parseInstructions(const std::string& input, std::vector<Instruction>& output) {
+    std::stringstream ss(input);
+    std::string token;
+
+    while (std::getline(ss, token, ';')) {
+        token = trim(token);
+        token.erase(std::remove(token.begin(), token.end(), '\\'), token.end());
+
+        if (token.empty()) continue;
+
+        std::stringstream parts(token);
+        std::string cmd;
+        parts >> cmd;
+
+        // --- DECLARE ---
+        if (cmd == "DECLARE") {
+            std::string var; 
+            int value;
+            if (parts >> var >> value) {
+                output.emplace_back(OpCode::DECLARE, std::vector<Arg>{ var, value });
+            } else {
+                std::cerr << "Invalid DECLARE: " << token << "\n";
+            }
+        } 
+
+        // --- ADD ---
+        else if (cmd == "ADD") {
+            std::string v1, v2, v3;
+            if (parts >> v1 >> v2 >> v3) {
+                output.emplace_back(OpCode::ADD, std::vector<Arg>{ v1, v2, v3 });
+            } else {
+                std::cerr << "Invalid ADD: " << token << "\n";
+            }
+        }
+
+        // --- WRITE ---
+        else if (cmd == "WRITE") {
+            int addr; 
+            std::string var;
+            if (parts >> std::hex >> addr >> var) {
+                output.emplace_back(OpCode::WRITE, std::vector<Arg>{ addr, var });
+            } else {
+                std::cerr << "Invalid WRITE: " << token << "\n";
+            }
+        }
+
+        // --- READ ---
+        else if (cmd == "READ") {
+            std::string var; 
+            int addr;
+            if (parts >> var >> std::hex >> addr) {
+                output.emplace_back(OpCode::READ, std::vector<Arg>{ var, addr });
+            } else {
+                std::cerr << "Invalid READ: " << token << "\n";
+            }
+        }
+
+        // --- PRINT ---
+        else if (cmd == "PRINT" || cmd.rfind("PRINT(", 0) == 0) {
+            auto start = token.find('(');
+            auto end = token.rfind(')');
+            if (start != std::string::npos && end != std::string::npos && end > start) {
+                std::string inner = token.substr(start + 1, end - start - 1);
+
+                std::vector<Arg> printArgs;
+                std::stringstream expr(inner);
+                std::string part;
+                
+                while (std::getline(expr, part, '+')) {
+                    part = trim(part);
+                    if (!part.empty() && part.front() == '"' && part.back() == '"') {
+                        printArgs.emplace_back(part.substr(1, part.size() - 2)); // string literal
+                    } else {
+                        printArgs.emplace_back(part); // variable name
+                    }
+                }
+
+                output.emplace_back(OpCode::PRINT, printArgs);
+            } else {
+                std::cerr << "Invalid PRINT syntax: " << token << "\n";
+            }
+        }
+
+        // --- UNKNOWN ---
+        else {
+            std::cerr << "Unknown instruction: " << token << "\n";
+        }
+    }
+}
+
+void executeInstructions(Process* process) {
+    for (auto& instr : process->instructionList) {
+        switch (instr.opcode) {
+            
+            // DECLARE
+            case OpCode::DECLARE:
+                if (instr.args.size() >= 2 &&
+                    std::holds_alternative<std::string>(instr.args[0]) &&
+                    std::holds_alternative<int>(instr.args[1])) 
+                {
+                    process->DECLARE(std::get<std::string>(instr.args[0]), std::get<int>(instr.args[1]), process->pid);
+                } else {
+                    std::cerr << "Error: DECLARE missing arguments\n";
+                }
+                break;
+
+            // ADD
+            case OpCode::ADD:
+                if (instr.args.size() >= 3) {
+                    process->ADD(instr.args[0], instr.args[1], instr.args[2], process->pid);
+                } else {
+                    std::cerr << "Error: ADD missing arguments\n";
+                }
+                break;
+
+            // WRITE
+            case OpCode::WRITE:
+                if (instr.args.size() >= 2 &&
+                    std::holds_alternative<int>(instr.args[0]) &&
+                    std::holds_alternative<std::string>(instr.args[1])) 
+                {
+                    process->WRITE(std::get<int>(instr.args[0]), process->variables[std::get<std::string>(instr.args[1])]);
+                } else {
+                    std::cerr << "Error: WRITE missing arguments\n";
+                }
+                break;
+
+            // READ
+            case OpCode::READ:
+                if (instr.args.size() >= 2 &&
+                    std::holds_alternative<std::string>(instr.args[0]) &&
+                    std::holds_alternative<int>(instr.args[1])) 
+                {
+                    process->READ(std::get<std::string>(instr.args[0]), std::get<int>(instr.args[1]));
+                } else {
+                    std::cerr << "Error: READ missing arguments\n";
+                }
+                break;
+
+            // PRINT
+            case OpCode::PRINT: {
+                std::string result;
+                for (auto& arg : instr.args) {
+                    if (std::holds_alternative<std::string>(arg)) {
+                        std::string val = std::get<std::string>(arg);
+                        // Check if it's a variable name
+                        if (process->variables.find(val) != process->variables.end()) {
+                            result += std::to_string(process->variables[val]);
+                        }
+                        // Otherwise treat as literal
+                        else {
+                            result += val;
+                        }
+                    }
+                    else if (std::holds_alternative<int>(arg)) {
+                        result += std::to_string(std::get<int>(arg));
+                    }
+                }
+                process->logPrintCommand(process->pid, result);
+                break;
+            }
+        }
+    }
+}
+
+
+
 
